@@ -35,5 +35,6 @@
 *.pb.cc
 *.pb.h
 
-# 中间文件
-output
+# log
+log
+*.log
