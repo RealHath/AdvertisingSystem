@@ -2,9 +2,6 @@ include $(BRPC_PATH)/config.mk
 
 WORKPATH = $(HOME)/AdvertisingSystem
 
-# 中间文件路径
-TMPDIR = $(PWD)/output
-
 # cpp源文件
 SRCS = $(wildcard *.cpp $(PWD)/ao/*.cpp)
 DIRS = $(notdir $(SRCS))
@@ -25,7 +22,7 @@ LIB += -L$(WORKPATH)/lib -L$(LIBS)\
 -lprotobuf -lbrpc -lgflags
 # 开启编译warning和设置优化等级
 # CFLAGS = -Wall -O2
-CFLAGS += $(CPPFLAGS) -std=c++0x -DNDEBUG -O2 -D__const__= -pipe -W -Wall -Wno-unused-parameter -fPIC -fno-omit-frame-pointer -faligned-new
+CFLAGS += $(CPPFLAGS) -DNDEBUG -O2 -D__const__= -pipe -W -Wall -Wno-unused-parameter -fPIC -fno-omit-frame-pointer -faligned-new
 
 TARGET = test
 

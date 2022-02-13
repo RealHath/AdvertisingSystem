@@ -1,10 +1,14 @@
-#include "module.h"
 #include <iostream>
+extern "C"
+{
+#include <sys/stat.h>
+}
 
 #include <gflags/gflags.h>
 #include <butil/logging.h>
 #include <brpc/server.h>
 #include "test.pb.h"
+#include "module.h"
 
 DEFINE_bool(echo_attachment, true, "Echo attachment as well");
 DEFINE_int32(port, 8000, "TCP Port of this server");
@@ -30,8 +34,10 @@ namespace example
         {
             // This object helps you to call done->Run() in RAII style. If you need
             // to process the request asynchronously, pass done_guard.release().
+            // 保留
             brpc::ClosureGuard done_guard(done);
 
+            // cntl句柄，有前端的信息
             brpc::Controller *cntl =
                 static_cast<brpc::Controller *>(cntl_base);
 
@@ -65,6 +71,21 @@ int main(int argc, char *argv[])
 {
     // Parse gflags. We recommend you to use gflags as well.
     GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
+
+    // 日志
+    mkdir("log", 0755);
+    // time
+    time_t t = time(NULL);
+    struct tm *sys_tm = localtime(&t);
+    struct tm my_tm = *sys_tm;
+    // log config
+    char log_full_name[255];
+    snprintf(log_full_name, 255, "log/test_%d_%02d_%02d.log", my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
+    std::string log_path = log_full_name;
+    ::logging::LoggingSettings log_setting;          //创建LoggingSetting对象进行设置
+    log_setting.log_file = log_path.c_str();         //设置日志路径
+    log_setting.logging_dest = logging::LOG_TO_FILE; //设置日志写到文件，不写的话不生效
+    ::logging::InitLogging(log_setting);             //应用日志设置
 
     // Generally you only need one Server.
     brpc::Server server;
