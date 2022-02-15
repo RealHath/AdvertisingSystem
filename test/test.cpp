@@ -9,7 +9,7 @@ extern "C"
 #include <brpc/server.h>
 #include <brpc/restful.h>
 #include "test.pb.h"
-#include "test2.pb.h"
+#include "module.h"
 
 DEFINE_int32(port, 8010, "TCP Port of this server");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
@@ -21,7 +21,7 @@ DEFINE_string(certificate, "cert.pem", "Certificate file path to enable SSL");
 DEFINE_string(private_key, "key.pem", "Private key file path to enable SSL");
 DEFINE_string(ciphers, "", "Cipher suite used for SSL connections");
 
-namespace example
+namespace test
 {
 
     // Service with static path.
@@ -113,65 +113,11 @@ namespace example
             }
         }
     };
+} // namespace test
 
-    // Restful service. (The service implementation is exactly same with regular
-    // services, the difference is that you need to pass a `restful_mappings'
-    // when adding the service into server).
-    class QueueServiceImpl : public example::QueueService
-    {
-    public:
-        QueueServiceImpl(){};
-        virtual ~QueueServiceImpl(){};
-        void start(google::protobuf::RpcController *cntl_base,
-                   const HttpRequest *,
-                   HttpResponse *,
-                   google::protobuf::Closure *done)
-        {
-            brpc::ClosureGuard done_guard(done);
-            brpc::Controller *cntl =
-                static_cast<brpc::Controller *>(cntl_base);
-            cntl->response_attachment().append("queue started");
-            LOG(INFO) << "QueueService start";
-        }
-        void stop(google::protobuf::RpcController *cntl_base,
-                  const HttpRequest *,
-                  HttpResponse *,
-                  google::protobuf::Closure *done)
-        {
-            brpc::ClosureGuard done_guard(done);
-            brpc::Controller *cntl =
-                static_cast<brpc::Controller *>(cntl_base);
-            cntl->response_attachment().append("queue stopped");
-            LOG(INFO) << "QueueService start";
-        }
-        void getstats(google::protobuf::RpcController *cntl_base,
-                      const HttpRequest *,
-                      HttpResponse *,
-                      google::protobuf::Closure *done)
-        {
-            LOG(INFO) << "QueueService getstats";
-            brpc::ClosureGuard done_guard(done);
-            brpc::Controller *cntl =
-                static_cast<brpc::Controller *>(cntl_base);
-            const std::string &unresolved_path = cntl->http_request().unresolved_path();
-            if (unresolved_path.empty())
-            {
-                cntl->response_attachment().append("Require a name after /stats");
-            }
-            else
-            {
-                cntl->response_attachment().append("Get stats: ");
-                cntl->response_attachment().append(unresolved_path);
-            }
-        }
-    };
-} // namespace example
-
-int main(int argc, char *argv[])
-{
-    // Parse gflags. We recommend you to use gflags as well.
-    GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
-
+// 日志配置
+void configLog(){
+    const char* moduleName = "test";
     // 日志
     mkdir("log", 0755);
     // time
@@ -180,20 +126,31 @@ int main(int argc, char *argv[])
     struct tm my_tm = *sys_tm;
     // log config
     char log_full_name[255];
-    snprintf(log_full_name, 255, "log/test_%d_%02d_%02d.log", my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
+    snprintf(log_full_name, 255, "log/%s_%d_%02d_%02d.log", moduleName, my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
     std::string log_path = log_full_name;
     ::logging::LoggingSettings log_setting;          //创建LoggingSetting对象进行设置
     log_setting.log_file = log_path.c_str();         //设置日志路径
     log_setting.logging_dest = logging::LOG_TO_FILE; //设置日志写到文件，不写的话不生效
     ::logging::InitLogging(log_setting);             //应用日志设置
+}
+
+int main(int argc, char *argv[])
+{
+    // 守护进程
+    daemon(1, 0);
+
+    // Parse gflags. We recommend you to use gflags as well.
+    GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
+
+    configLog();
 
     // Generally you only need one Server.
     brpc::Server server;
 
     // Instance of your service.
-    example::HttpServiceImpl http_svc;
-    example::FileServiceImpl file_svc;
-    example::QueueServiceImpl queue_svc;
+    test::HttpServiceImpl http_svc;
+    test::FileServiceImpl file_svc;
+    test::QueueServiceImpl queue_svc;
 
     // Add services into server. Notice the second parameter, because the
     // service is put on stack, we don't want server to delete it, otherwise
@@ -223,6 +180,7 @@ int main(int argc, char *argv[])
     // Start the server.
     brpc::ServerOptions options;
     options.idle_timeout_sec = FLAGS_idle_timeout_s;
+    // https相关
     // options.mutable_ssl_options()->default_cert.certificate = FLAGS_certificate;
     // options.mutable_ssl_options()->default_cert.private_key = FLAGS_private_key;
     // options.mutable_ssl_options()->ciphers = FLAGS_ciphers;
