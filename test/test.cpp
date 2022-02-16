@@ -31,8 +31,8 @@ namespace test
         HttpServiceImpl(){};
         virtual ~HttpServiceImpl(){};
         void Echo(google::protobuf::RpcController *cntl_base,
-                  const HttpRequest *,
-                  HttpResponse *,
+                  const HttpRequest *req,
+                  HttpResponse *resp,
                   google::protobuf::Closure *done)
         {
             // This object helps you to call done->Run() in RAII style. If you need
@@ -42,17 +42,23 @@ namespace test
             brpc::Controller *cntl =
                 static_cast<brpc::Controller *>(cntl_base);
             // Fill response.
-            cntl->http_response().set_content_type("text/plain");
-            butil::IOBufBuilder os;
-            os << "queries:";
-            for (brpc::URI::QueryIterator it = cntl->http_request().uri().QueryBegin();
-                 it != cntl->http_request().uri().QueryEnd(); ++it)
-            {
-                os << ' ' << it->first << '=' << it->second;
+            if(req->has_name()){
+                LOG(INFO) << "name, num:" << req->name() << req->num();
             }
-            os << "\nbody: " << cntl->request_attachment() << '\n';
-            LOG(INFO) << "HttpServiceImpl Echo" << os.buf();
-            os.move_to(cntl->response_attachment());
+            // cntl->http_response().set_content_type("text/plain");
+            // butil::IOBufBuilder os;
+            // os << "queries:";
+            // for (brpc::URI::QueryIterator it = cntl->http_request().uri().QueryBegin();
+            //      it != cntl->http_request().uri().QueryEnd(); ++it)
+            // {
+            //     os << ' ' << it->first << '=' << it->second;
+            // }
+            // os << "\nbody: " << cntl->request_attachment() << '\n';
+            // LOG(INFO) << "HttpServiceImpl Echo" << os.buf();
+            // os.move_to(cntl->response_attachment());
+
+            resp->set_err(0);
+            resp->set_message("protobuf test sucess");
         }
     };
 
@@ -156,7 +162,8 @@ int main(int argc, char *argv[])
     // service is put on stack, we don't want server to delete it, otherwise
     // use brpc::SERVER_OWNS_SERVICE.
     if (server.AddService(&http_svc,
-                          brpc::SERVER_DOESNT_OWN_SERVICE) != 0)
+                          brpc::SERVER_DOESNT_OWN_SERVICE,
+                          "/v1/test => Echo") != 0)
     {
         LOG(ERROR) << "Fail to add http_svc";
         return -1;

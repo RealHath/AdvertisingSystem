@@ -3,8 +3,14 @@ package test;
 
 option cc_generic_services = true;
 
-message HttpRequest {};
-message HttpResponse {};
+message HttpRequest {
+  optional string name = 1;
+  optional int32 num = 2;
+};
+message HttpResponse {
+  optional int32 err = 1;
+  optional string message = 2;
+};
 
 service HttpService {
   rpc Echo(HttpRequest) returns (HttpResponse);
