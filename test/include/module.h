@@ -15,20 +15,12 @@ namespace test
     public:
         QueueServiceImpl();
         virtual ~QueueServiceImpl();
-        void start(google::protobuf::RpcController *cntl_base,
-                   const HttpRequest *,
-                   HttpResponse *,
-                   google::protobuf::Closure *done);
+        void start(const TestRequest& req, TestResponse& resp);
 
-        void stop(google::protobuf::RpcController *cntl_base,
-                  const HttpRequest *,
-                  HttpResponse *,
-                  google::protobuf::Closure *done);
+        void stop(const TestRequest& req, TestResponse& resp);
 
-        void getstats(google::protobuf::RpcController *cntl_base,
-                      const HttpRequest *,
-                      HttpResponse *,
-                      google::protobuf::Closure *done);
+        void getstats(const TestRequest& req, TestResponse& resp);
+
     };
 }
 #endif

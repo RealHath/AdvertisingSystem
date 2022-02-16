@@ -8,10 +8,12 @@ extern "C"
 #include <butil/logging.h>
 #include <brpc/server.h>
 #include <brpc/restful.h>
+#include <json2pb/json_to_pb.h>
+#include <json2pb/pb_to_json.h>
 #include "test.pb.h"
 #include "module.h"
 
-DEFINE_int32(port, 8010, "TCP Port of this server");
+DEFINE_string(ip_port, "127.0.0.1:8010", "TCP Port of this server");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
                                  "read/write operations during the last `idle_timeout_s'");
 DEFINE_int32(logoff_ms, 2000, "Maximum duration of server's LOGOFF state "
@@ -31,8 +33,8 @@ namespace test
         HttpServiceImpl(){};
         virtual ~HttpServiceImpl(){};
         void Echo(google::protobuf::RpcController *cntl_base,
-                  const HttpRequest *req,
-                  HttpResponse *resp,
+                  const HttpRequest *,
+                  HttpResponse *,
                   google::protobuf::Closure *done)
         {
             // This object helps you to call done->Run() in RAII style. If you need
@@ -42,88 +44,46 @@ namespace test
             brpc::Controller *cntl =
                 static_cast<brpc::Controller *>(cntl_base);
             // Fill response.
-            if(req->has_name()){
-                LOG(INFO) << "name, num:" << req->name() << req->num();
-            }
-            // cntl->http_response().set_content_type("text/plain");
-            // butil::IOBufBuilder os;
-            // os << "queries:";
-            // for (brpc::URI::QueryIterator it = cntl->http_request().uri().QueryBegin();
-            //      it != cntl->http_request().uri().QueryEnd(); ++it)
-            // {
-            //     os << ' ' << it->first << '=' << it->second;
-            // }
-            // os << "\nbody: " << cntl->request_attachment() << '\n';
-            // LOG(INFO) << "HttpServiceImpl Echo" << os.buf();
-            // os.move_to(cntl->response_attachment());
 
-            resp->set_err(0);
-            resp->set_message("protobuf test sucess");
-        }
-    };
+            TestRequest req;
+            TestResponse resp;
 
-    // Service with dynamic path.
-    class FileServiceImpl : public FileService
-    {
-    public:
-        FileServiceImpl(){};
-        virtual ~FileServiceImpl(){};
+            // 接收转化入参
+            std::string body = cntl->request_attachment().to_string();
+            LOG(INFO) << "body: " << body;
 
-        struct Args
-        {
-            butil::intrusive_ptr<brpc::ProgressiveAttachment> pa;
-        };
-
-        static void *SendLargeFile(void *raw_args)
-        {
-            std::unique_ptr<Args> args(static_cast<Args *>(raw_args));
-            if (args->pa == NULL)
+            std::string err;
+            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
+            if (!err.empty())
             {
-                LOG(ERROR) << "ProgressiveAttachment is NULL";
-                return NULL;
+                LOG(ERROR) << "err" << err;
             }
-            for (int i = 0; i < 100; ++i)
-            {
-                char buf[16];
-                int len = snprintf(buf, sizeof(buf), "part_%d ", i);
-                args->pa->Write(buf, len);
 
-                // sleep a while to send another part.
-                bthread_usleep(10000);
+            // 逻辑处理入口
+            test::QueueServiceImpl ao;
+            ao.start(req, resp);
+            std::string reqData, respData;
+            if(resp.has_err() || resp.has_message()){
+                LOG(ERROR) << "pb to json";
+                json2pb::ProtoMessageToJson(req, &reqData);
+                LOG(INFO) << "req: " << reqData;
+                json2pb::ProtoMessageToJson(resp, &respData);
+                LOG(INFO) << "resp: " << respData;
             }
-            return NULL;
-        }
 
-        void default_method(google::protobuf::RpcController *cntl_base,
-                            const HttpRequest *,
-                            HttpResponse *,
-                            google::protobuf::Closure *done)
-        {
-            brpc::ClosureGuard done_guard(done);
-            brpc::Controller *cntl =
-                static_cast<brpc::Controller *>(cntl_base);
-            const std::string &filename = cntl->http_request().unresolved_path();
-            LOG(INFO) << "FileService default_method";
-            if (filename == "largefile")
-            {
-                // Send the "largefile" with ProgressiveAttachment.
-                std::unique_ptr<Args> args(new Args);
-                args->pa = cntl->CreateProgressiveAttachment();
-                bthread_t th;
-                bthread_start_background(&th, NULL, SendLargeFile, args.release());
-            }
-            else
-            {
-                cntl->response_attachment().append("Getting file: ");
-                cntl->response_attachment().append(filename);
-            }
+            // 返回前端
+            cntl->http_response().set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
         }
     };
 } // namespace test
 
 // 日志配置
-void configLog(){
-    const char* moduleName = "test";
+void configLog()
+{
+    const char *moduleName = "test";
     // 日志
     mkdir("log", 0755);
     // time
@@ -155,7 +115,6 @@ int main(int argc, char *argv[])
 
     // Instance of your service.
     test::HttpServiceImpl http_svc;
-    test::FileServiceImpl file_svc;
     test::QueueServiceImpl queue_svc;
 
     // Add services into server. Notice the second parameter, because the
@@ -166,12 +125,6 @@ int main(int argc, char *argv[])
                           "/v1/test => Echo") != 0)
     {
         LOG(ERROR) << "Fail to add http_svc";
-        return -1;
-    }
-    if (server.AddService(&file_svc,
-                          brpc::SERVER_DOESNT_OWN_SERVICE) != 0)
-    {
-        LOG(ERROR) << "Fail to add file_svc";
         return -1;
     }
     if (server.AddService(&queue_svc,
@@ -191,7 +144,7 @@ int main(int argc, char *argv[])
     // options.mutable_ssl_options()->default_cert.certificate = FLAGS_certificate;
     // options.mutable_ssl_options()->default_cert.private_key = FLAGS_private_key;
     // options.mutable_ssl_options()->ciphers = FLAGS_ciphers;
-    if (server.Start(FLAGS_port, &options) != 0)
+    if (server.Start(FLAGS_ip_port.c_str(), &options) != 0)
     {
         LOG(ERROR) << "Fail to start HttpServer";
         return -1;

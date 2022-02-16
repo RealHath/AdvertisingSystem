@@ -3,13 +3,20 @@ package test;
 
 option cc_generic_services = true;
 
-message HttpRequest {
+message TestRequest {
   optional string name = 1;
   optional int32 num = 2;
 };
-message HttpResponse {
+message TestResponse {
   optional int32 err = 1;
   optional string message = 2;
+};
+
+message HttpRequest {
+
+};
+message HttpResponse {
+
 };
 
 service HttpService {
@@ -17,9 +24,6 @@ service HttpService {
   rpc EchoProtobuf(HttpRequest) returns (HttpResponse);
 };
 
-service FileService {
-  rpc default_method(HttpRequest) returns (HttpResponse);
-};
 
 service QueueService {
   rpc start(HttpRequest) returns (HttpResponse);

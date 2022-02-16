@@ -33,7 +33,7 @@ all:proto $(TARGET)
 $(TARGET):$(PROTOOBJS) $(OBJS)
 	@echo "> link"
 	$(CXX) -o $@ $^ $(LIB) $(DYNAMIC_LINKINGS) $(STATIC_LINKINGS)
-	rm -f *.o *.pb.*
+# rm -f *.o *.pb.*
  
 # 编译时候指定头文件目录
 %.o:%.cpp
