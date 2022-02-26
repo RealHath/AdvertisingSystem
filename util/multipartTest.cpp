@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 
 #define TEST_PARSER
 #define INPUT_FILE "input.txt"
@@ -34,15 +35,23 @@ int main()
 	size_t bufsize = 1024 * 32;
 	char *buf = (char *)malloc(bufsize);
 
+	std::ifstream in;
+	in.open(INPUT_FILE, std::ios::in);
+	std::string tmp;
+	getline(in, tmp);
+	// in >> tmp;
+	parser.setBoundary(tmp);
+
 	gettimeofday(&stime, NULL);
 	for (int i = 0; i < TIMES; i++)
 	{
 #ifndef QUIET
 		printf("------------\n");
 #endif
-		parser.setBoundary(BOUNDARY);
+		// parser.setBoundary(BOUNDARY);
 
 		FILE *f = fopen(INPUT_FILE, "rb");
+        // 这里是循环读取信息
 		while (!parser.stopped() && !feof(f))
 		{
 			size_t len = fread(buf, 1, bufsize, f);
@@ -52,7 +61,9 @@ int main()
 				size_t ret = parser.feed(buf + fed, len - fed);
 				fed += ret;
 			} while (fed < len && !parser.stopped());
+            // printf("多文件分割");
 		}
+        // 这里是生成数据
         parser.genReflectData();
 
         for(auto iter : parser.bodyData){

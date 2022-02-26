@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+package mysql_proto;
+
+option cc_generic_services = true;
+
+//数据库存储
+message SaveReq {
+    optional string cmd = 1;
+}
+message SaveResp {
+    optional int32 err = 1;
+}
+
+message HttpRequest {
+
+};
+message HttpResponse {
+
+};
+
+service HttpService {
+    rpc SaveDB (HttpRequest) returns (HttpResponse);
+    rpc SaveDBV2 (SaveReq) returns (SaveResp);
+}

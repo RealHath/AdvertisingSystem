@@ -1,8 +1,7 @@
 #include <iostream>
-extern "C"
-{
+#include <fstream>
+#include <memory>
 #include <sys/stat.h>
-}
 
 #include <gflags/gflags.h>
 #include <butil/logging.h>
@@ -10,10 +9,12 @@ extern "C"
 #include <brpc/restful.h>
 #include <json2pb/json_to_pb.h>
 #include <json2pb/pb_to_json.h>
-#include "test.pb.h"
-#include "module.h"
+#include <brpc/http2.h>
 
-DEFINE_string(ip_port, "127.0.0.1:8010", "TCP Port of this server");
+#include "login.pb.h"
+#include "login.h"
+
+DEFINE_string(ip_port, "127.0.0.1:10001", "TCP Port of this server");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
                                  "read/write operations during the last `idle_timeout_s'");
 DEFINE_int32(logoff_ms, 2000, "Maximum duration of server's LOGOFF state "
@@ -23,68 +24,10 @@ DEFINE_string(certificate, "../cert.pem", "Certificate file path to enable SSL")
 DEFINE_string(private_key, "../key.pem", "Private key file path to enable SSL");
 DEFINE_string(ciphers, "", "Cipher suite used for SSL connections");
 
-namespace test
-{
-
-    // Service with static path.
-    class HttpServiceImpl : public HttpService
-    {
-    public:
-        HttpServiceImpl(){};
-        virtual ~HttpServiceImpl(){};
-        void Echo(google::protobuf::RpcController *cntl_base,
-                  const HttpRequest *,
-                  HttpResponse *,
-                  google::protobuf::Closure *done)
-        {
-            // This object helps you to call done->Run() in RAII style. If you need
-            // to process the request asynchronously, pass done_guard.release().
-            brpc::ClosureGuard done_guard(done);
-
-            brpc::Controller *cntl =
-                static_cast<brpc::Controller *>(cntl_base);
-            // Fill response.
-
-            TestRequest req;
-            TestResponse resp;
-
-            // 接收转化入参
-            std::string body = cntl->request_attachment().to_string();
-            LOG(INFO) << "body: " << body;
-
-            std::string err;
-            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
-            if (!err.empty())
-            {
-                LOG(ERROR) << "err" << err;
-            }
-
-            // 逻辑处理入口
-            test::QueueServiceImpl ao;
-            ao.start(req, resp);
-            std::string reqData, respData;
-            if (resp.has_err() || resp.has_message())
-            {
-                LOG(ERROR) << "pb to json";
-                json2pb::ProtoMessageToJson(req, &reqData);
-                LOG(INFO) << "req: " << reqData;
-                json2pb::ProtoMessageToJson(resp, &respData);
-                LOG(INFO) << "resp: " << respData;
-            }
-
-            // 返回前端
-            cntl->http_response().set_content_type("application/json");
-            butil::IOBufBuilder os;
-            os << respData;
-            os.move_to(cntl->response_attachment());
-        }
-    };
-} // namespace test
-
 // 日志配置
 void configLog()
 {
-    const char *moduleName = "test";
+    const char *moduleName = "login";
     // 日志
     mkdir("log", 0755);
     // time
@@ -101,6 +44,87 @@ void configLog()
     ::logging::InitLogging(log_setting);             //应用日志设置
 }
 
+namespace login_proto
+{
+    class HttpServiceImpl : public HttpService
+    {
+    public:
+        HttpServiceImpl(){};
+        virtual ~HttpServiceImpl(){};
+        void Register(google::protobuf::RpcController *cntl_base,
+                      const HttpRequest *,
+                      HttpResponse *,
+                      google::protobuf::Closure *done)
+        {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            login_proto::RegisterReq req;
+            login_proto::RegisterResp resp;
+
+            // 请求
+            std::string body = cntl->request_attachment().to_string();
+            std::string err;
+            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
+            if (!err.empty())
+            {
+                LOG(ERROR) << "err" << err;
+            }
+
+            // 逻辑处理入口
+            login_namespace::Login ao;
+            ao.regist(req, resp);
+
+            // 返回
+            std::string respData;
+            json2pb::ProtoMessageToJson(resp, &respData);
+
+            // 返回前端
+            cntl->http_response().set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
+        }
+
+        void Login(google::protobuf::RpcController *cntl_base,
+                   const HttpRequest *,
+                   HttpResponse *,
+                   google::protobuf::Closure *done)
+        {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            login_proto::LoginReq req;
+            login_proto::LoginResp resp;
+
+            std::string body = cntl->request_attachment().to_string();
+            std::string err;
+            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
+            if (!err.empty())
+            {
+                LOG(ERROR) << "err" << err;
+            }
+            // 逻辑处理入口
+            login_namespace::Login ao;
+            ao.login(req, resp);
+
+            // 返回
+            std::string respData;
+            json2pb::ProtoMessageToJson(resp, &respData);
+
+            // 返回前端
+            cntl->http_response().set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
+        }
+    };
+}
+
 int main(int argc, char *argv[])
 {
     // 守护进程
@@ -115,26 +139,18 @@ int main(int argc, char *argv[])
     brpc::Server server;
 
     // Instance of your service.
-    test::HttpServiceImpl http_svc;
-    test::QueueServiceImpl queue_svc;
+
+    login_proto::HttpServiceImpl http_svc;
 
     // Add services into server. Notice the second parameter, because the
     // service is put on stack, we don't want server to delete it, otherwise
     // use brpc::SERVER_OWNS_SERVICE.
     if (server.AddService(&http_svc,
                           brpc::SERVER_DOESNT_OWN_SERVICE,
-                          "/v1/test => Echo") != 0)
+                          "/login/Register => Register,"
+                          "/login/Login => Login") != 0)
     {
         LOG(ERROR) << "Fail to add http_svc";
-        return -1;
-    }
-    if (server.AddService(&queue_svc,
-                          brpc::SERVER_DOESNT_OWN_SERVICE,
-                          "/v1/queue/start   => start,"
-                          "/v1/queue/stop    => stop,"
-                          "/v1/queue/stats/* => getstats") != 0)
-    {
-        LOG(ERROR) << "Fail to add queue_svc";
         return -1;
     }
 

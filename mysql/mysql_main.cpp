@@ -1,29 +1,29 @@
 #include <iostream>
-extern "C"
-{
+#include <fstream>
+#include <memory>
 #include <sys/stat.h>
-}
+#include <mysql/mysql.h>
 
 #include <gflags/gflags.h>
 #include <butil/logging.h>
 #include <brpc/server.h>
-#include <brpc/restful.h>
-#include <json2pb/json_to_pb.h>
-#include <json2pb/pb_to_json.h>
-#include "test.pb.h"
-#include "module.h"
+#include "mysql.pb.h"
+#include "errorEnum.pb.h"
+#include "sql.h"
 
-DEFINE_string(ip_port, "127.0.0.1:8010", "TCP Port of this server");
+DEFINE_string(ip_port, "127.0.0.1:9000", "TCP Port of this server");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
                                  "read/write operations during the last `idle_timeout_s'");
 DEFINE_int32(logoff_ms, 2000, "Maximum duration of server's LOGOFF state "
                               "(waiting for client to close connection before server stops)");
 
-DEFINE_string(certificate, "../cert.pem", "Certificate file path to enable SSL");
-DEFINE_string(private_key, "../key.pem", "Private key file path to enable SSL");
-DEFINE_string(ciphers, "", "Cipher suite used for SSL connections");
+DEFINE_string(url, "127.0.0.1", "mysql url");
+DEFINE_int32(port, 3306, "mysql port");
+DEFINE_string(user, "root", "mysql user");
+DEFINE_string(password, "mysqlroot", "mysql password");
+DEFINE_string(database, "ADSystem", "mysql database");
 
-namespace test
+namespace mysql_proto
 {
 
     // Service with static path.
@@ -32,10 +32,10 @@ namespace test
     public:
         HttpServiceImpl(){};
         virtual ~HttpServiceImpl(){};
-        void Echo(google::protobuf::RpcController *cntl_base,
-                  const HttpRequest *,
-                  HttpResponse *,
-                  google::protobuf::Closure *done)
+        void SaveDBV2(google::protobuf::RpcController *cntl_base,
+                      const SaveReq *req,
+                      SaveResp *resp,
+                      google::protobuf::Closure *done)
         {
             // This object helps you to call done->Run() in RAII style. If you need
             // to process the request asynchronously, pass done_guard.release().
@@ -44,47 +44,24 @@ namespace test
             brpc::Controller *cntl =
                 static_cast<brpc::Controller *>(cntl_base);
             // Fill response.
-
-            TestRequest req;
-            TestResponse resp;
-
-            // 接收转化入参
-            std::string body = cntl->request_attachment().to_string();
-            LOG(INFO) << "body: " << body;
-
-            std::string err;
-            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
-            if (!err.empty())
+            LOG(INFO) << "sql: " << req->cmd();
+            bool flag = MyDB::getInstance()->exeSQL(req->cmd());
+            if (flag)
             {
-                LOG(ERROR) << "err" << err;
+                resp->set_err(0);
             }
-
-            // 逻辑处理入口
-            test::QueueServiceImpl ao;
-            ao.start(req, resp);
-            std::string reqData, respData;
-            if (resp.has_err() || resp.has_message())
+            else
             {
-                LOG(ERROR) << "pb to json";
-                json2pb::ProtoMessageToJson(req, &reqData);
-                LOG(INFO) << "req: " << reqData;
-                json2pb::ProtoMessageToJson(resp, &respData);
-                LOG(INFO) << "resp: " << respData;
+                resp->set_err(errorEnum::SUCCESS);
             }
-
-            // 返回前端
-            cntl->http_response().set_content_type("application/json");
-            butil::IOBufBuilder os;
-            os << respData;
-            os.move_to(cntl->response_attachment());
         }
     };
-} // namespace test
+} // namespace mysql
 
 // 日志配置
 void configLog()
 {
-    const char *moduleName = "test";
+    const char *moduleName = "mysql";
     // 日志
     mkdir("log", 0755);
     // time
@@ -101,6 +78,15 @@ void configLog()
     ::logging::InitLogging(log_setting);             //应用日志设置
 }
 
+void mysqlConfig()
+{
+    bool flag = MyDB::getInstance()->connect(FLAGS_url, FLAGS_port, FLAGS_user, FLAGS_password, FLAGS_database);
+    if (!flag)
+    {
+        LOG(ERROR) << "connect failed!";
+    }
+}
+
 int main(int argc, char *argv[])
 {
     // 守护进程
@@ -110,47 +96,34 @@ int main(int argc, char *argv[])
     GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
 
     configLog();
+    mysqlConfig();
 
     // Generally you only need one Server.
     brpc::Server server;
 
-    // Instance of your service.
-    test::HttpServiceImpl http_svc;
-    test::QueueServiceImpl queue_svc;
+    mysql_proto::HttpServiceImpl http_svc;
+    // fileTest::QueueServiceImpl queue_svc;
 
     // Add services into server. Notice the second parameter, because the
     // service is put on stack, we don't want server to delete it, otherwise
     // use brpc::SERVER_OWNS_SERVICE.
     if (server.AddService(&http_svc,
                           brpc::SERVER_DOESNT_OWN_SERVICE,
-                          "/v1/test => Echo") != 0)
+                          "/mysql/SaveDBV2 => SaveDBV2") != 0)
     {
         LOG(ERROR) << "Fail to add http_svc";
-        return -1;
-    }
-    if (server.AddService(&queue_svc,
-                          brpc::SERVER_DOESNT_OWN_SERVICE,
-                          "/v1/queue/start   => start,"
-                          "/v1/queue/stop    => stop,"
-                          "/v1/queue/stats/* => getstats") != 0)
-    {
-        LOG(ERROR) << "Fail to add queue_svc";
         return -1;
     }
 
     // Start the server.
     brpc::ServerOptions options;
     options.idle_timeout_sec = FLAGS_idle_timeout_s;
-    // https相关
-    options.mutable_ssl_options()->default_cert.certificate = FLAGS_certificate;
-    options.mutable_ssl_options()->default_cert.private_key = FLAGS_private_key;
-    options.mutable_ssl_options()->ciphers = FLAGS_ciphers;
     if (server.Start(FLAGS_ip_port.c_str(), &options) != 0)
     {
         LOG(ERROR) << "Fail to start HttpServer";
         return -1;
     }
-    LOG(INFO) << "http server start sucess";
+    LOG(INFO) << "mysql server start sucess";
     // Wait until Ctrl-C is pressed, then Stop() and Join() the server.
     server.RunUntilAskedToQuit();
     return 0;

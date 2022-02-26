@@ -212,7 +212,7 @@ private:
 				setError("Parser bug: index overflows lookbehind buffer. "
 					"Please send bug report with input file attached.");
 				throw std::out_of_range("index overflows lookbehind buffer");
-			} else if (index - 1 < 0) {
+			} else if ((index - 1) < 0) {
 				setError("Parser bug: index underflows lookbehind buffer. "
 					"Please send bug report with input file attached.");
 				throw std::out_of_range("index underflows lookbehind buffer");
@@ -256,8 +256,13 @@ private:
 
 	void onPartDataCallback(const char *buffer, size_t start, size_t end, void *userData)
 	{
+		std::string data = std::string(buffer + start, end - start);
+		if (data.compare("\r\n") != 0)
+		{
+			// 不等于"\r\n"
+			this->bodyData.insert(data);
+		}
 		
-		this->bodyData.insert(std::string(buffer + start, end - start));
 		#ifdef DEBUG
 		printf("onPartData: (%s)\n", std::string(buffer + start, end - start).c_str());
 		#endif
@@ -337,7 +342,12 @@ public:
 	
 	void setBoundary(const std::string &boundary) {
 		reset();
-		this->boundary = "\r\n--" + boundary;
+		// this->boundary = "\r\n--" + boundary;
+		// this->boundary = boundary;
+		size_t pos = boundary.find_first_of('\r');
+		this->boundary = "\r\n" + boundary.substr(0, pos);
+		this->boundary = boundary.substr(0, pos);
+		printf("this->boundary = %s\n", this->boundary.c_str());
 		boundaryData = this->boundary.c_str();
 		boundarySize = this->boundary.size();
 		indexBoundary();

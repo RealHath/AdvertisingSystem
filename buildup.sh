@@ -33,7 +33,7 @@ sudo yum -y install glog-devel
 
 git clone git://github.com/apache/incubator-brpc.git
 cd incubator-brpc/
-sh config_brpc.sh --headers="/usr/include" --libs="/usr/lib64 /usr/bin" --nodebugsymbols --with-glog
+sh config_brpc.sh --headers="/usr/include" --libs="/usr/lib64 /usr/bin" --nodebugsymbols
 make
 
 # mysql

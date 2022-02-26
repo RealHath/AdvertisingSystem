@@ -1,0 +1,10 @@
+syntax = "proto2";
+
+package errorEnum;
+
+option cc_generic_services = true;
+
+enum ErrorCode {
+    SUCCESS = 0;    // 成功
+    MYSQL_QUERY_ERR = 1;// mysql查询失败
+}

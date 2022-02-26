@@ -1,0 +1,43 @@
+syntax = "proto2";
+
+package login_proto;
+
+// 注册登录的接口
+option cc_generic_services = true;
+
+// 注册
+message RegisterReq {
+    optional string username = 1;
+    optional string password = 2;
+    optional uint64 phone = 3;
+}
+
+message RegisterResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;   // 用户唯一标识
+}
+
+// 登录
+message LoginReq {
+    optional string username = 1;
+    optional string password = 2;
+    optional string uuid = 3;   // 用户唯一标识
+}
+
+message LoginResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
+}
+
+message HttpRequest {
+
+};
+message HttpResponse {
+
+};
+
+service HttpService {
+    rpc Register (HttpRequest) returns (HttpResponse);  // 注册
+    rpc Login (HttpRequest) returns (HttpResponse);     // 登录
+}

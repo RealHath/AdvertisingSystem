@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+package fileTest;
+
+option cc_generic_services = true;
+
+message FileUploadRequest {
+    optional string filename = 1;   // 文件名
+    optional string context = 2;    // 文件内容
+}
+message FileUploadResponse {
+    optional int32 err = 1;
+    optional string msg = 2;
+}
+
+message HttpRequest {
+
+};
+message HttpResponse {
+
+};
+
+service HttpService {
+    rpc ImageUpload (HttpRequest) returns (HttpResponse);
+}

@@ -1,0 +1,1 @@
+g++ -Wall -g multipartTest.cpp -o multipart

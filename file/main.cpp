@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <memory>
 extern "C"
 {
 #include <sys/stat.h>
@@ -10,10 +12,11 @@ extern "C"
 #include <brpc/restful.h>
 #include <json2pb/json_to_pb.h>
 #include <json2pb/pb_to_json.h>
-#include "test.pb.h"
-#include "module.h"
+#include <brpc/http2.h>
+#include "fileTest.pb.h"
+#include "MultipartParser.h"
 
-DEFINE_string(ip_port, "127.0.0.1:8010", "TCP Port of this server");
+DEFINE_string(ip_port, "0.0.0.0:8020", "TCP Port of this server");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
                                  "read/write operations during the last `idle_timeout_s'");
 DEFINE_int32(logoff_ms, 2000, "Maximum duration of server's LOGOFF state "
@@ -23,7 +26,7 @@ DEFINE_string(certificate, "../cert.pem", "Certificate file path to enable SSL")
 DEFINE_string(private_key, "../key.pem", "Private key file path to enable SSL");
 DEFINE_string(ciphers, "", "Cipher suite used for SSL connections");
 
-namespace test
+namespace fileTest
 {
 
     // Service with static path.
@@ -32,10 +35,10 @@ namespace test
     public:
         HttpServiceImpl(){};
         virtual ~HttpServiceImpl(){};
-        void Echo(google::protobuf::RpcController *cntl_base,
-                  const HttpRequest *,
-                  HttpResponse *,
-                  google::protobuf::Closure *done)
+        void ImageUpload(google::protobuf::RpcController *cntl_base,
+                         const HttpRequest *,
+                         HttpResponse *,
+                         google::protobuf::Closure *done)
         {
             // This object helps you to call done->Run() in RAII style. If you need
             // to process the request asynchronously, pass done_guard.release().
@@ -45,37 +48,70 @@ namespace test
                 static_cast<brpc::Controller *>(cntl_base);
             // Fill response.
 
-            TestRequest req;
-            TestResponse resp;
+            FileUploadRequest req;
+            FileUploadResponse resp;
+            MultipartParser parser;
+
+            LOG(INFO) << "query: " << cntl->http_request().uri().query();
+            LOG(INFO) << "method: " << cntl->http_request().method();
+            LOG(INFO) << "host: " << cntl->http_request().uri().host();
+            LOG(INFO) << "path: " << cntl->http_request().uri().path();
 
             // 接收转化入参
             std::string body = cntl->request_attachment().to_string();
-            LOG(INFO) << "body: " << body;
+            // std::string tmp;
+            // getline(body, tmp);
+            parser.setBoundary(body);
+            size_t bufsize = body.size();
+            char *buf = (char *)malloc(bufsize);
+
+            // std::unique_ptr<char>
+            //     buf = std::make_unique(body.size());
+            // 这里是循环读取信息
+            while (!parser.stopped())
+            {
+                // size_t len = fread(buf, 1, bufsize, f);
+                size_t len = bufsize;
+                size_t fed = 0;
+                do
+                {
+                    size_t ret = parser.feed(buf + fed, len - fed);
+                    fed += ret;
+                } while (fed < len && !parser.stopped());
+                // printf("多文件分割");
+            }
+            // 这里是生成数据
+            parser.genReflectData();
+
+            for (auto iter : parser.bodyData)
+            {
+                printf("body测试: %s\n", iter.c_str());
+                LOG(INFO) << "body测试: " << iter.c_str();
+            }
+            for (auto iter : parser.reflectData)
+            {
+                printf("k v测试: %s, %s\n", iter.first.c_str(), iter.second.c_str());
+                LOG(INFO) << "k v测试 : " << iter.first.c_str() << iter.second.c_str();
+            }
+            printf("%s\n", parser.getErrorMessage());
+
+            LOG(INFO) << "post body: " << cntl->request_attachment();
+            std::ofstream output;
+            output.open("test.png", std::ios::out | std::ios::binary);
+            output << cntl->request_attachment().to_string();
 
             std::string err;
-            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
+            // json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
             if (!err.empty())
             {
                 LOG(ERROR) << "err" << err;
             }
 
-            // 逻辑处理入口
-            test::QueueServiceImpl ao;
-            ao.start(req, resp);
-            std::string reqData, respData;
-            if (resp.has_err() || resp.has_message())
-            {
-                LOG(ERROR) << "pb to json";
-                json2pb::ProtoMessageToJson(req, &reqData);
-                LOG(INFO) << "req: " << reqData;
-                json2pb::ProtoMessageToJson(resp, &respData);
-                LOG(INFO) << "resp: " << respData;
-            }
-
             // 返回前端
-            cntl->http_response().set_content_type("application/json");
+            // cntl->http_response().set_content_type("application/json");
+            cntl->http_response().SetHeader("Access-Control-Allow-Origin", "*");
             butil::IOBufBuilder os;
-            os << respData;
+            os << "调用成功";
             os.move_to(cntl->response_attachment());
         }
     };
@@ -84,7 +120,7 @@ namespace test
 // 日志配置
 void configLog()
 {
-    const char *moduleName = "test";
+    const char *moduleName = "fileTest";
     // 日志
     mkdir("log", 0755);
     // time
@@ -104,7 +140,7 @@ void configLog()
 int main(int argc, char *argv[])
 {
     // 守护进程
-    daemon(1, 0);
+    // daemon(1, 0);
 
     // Parse gflags. We recommend you to use gflags as well.
     GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
@@ -115,28 +151,28 @@ int main(int argc, char *argv[])
     brpc::Server server;
 
     // Instance of your service.
-    test::HttpServiceImpl http_svc;
-    test::QueueServiceImpl queue_svc;
+    fileTest::HttpServiceImpl http_svc;
+    // fileTest::QueueServiceImpl queue_svc;
 
     // Add services into server. Notice the second parameter, because the
     // service is put on stack, we don't want server to delete it, otherwise
     // use brpc::SERVER_OWNS_SERVICE.
     if (server.AddService(&http_svc,
                           brpc::SERVER_DOESNT_OWN_SERVICE,
-                          "/v1/test => Echo") != 0)
+                          "/testFile/ImageUpload => ImageUpload") != 0)
     {
         LOG(ERROR) << "Fail to add http_svc";
         return -1;
     }
-    if (server.AddService(&queue_svc,
-                          brpc::SERVER_DOESNT_OWN_SERVICE,
-                          "/v1/queue/start   => start,"
-                          "/v1/queue/stop    => stop,"
-                          "/v1/queue/stats/* => getstats") != 0)
-    {
-        LOG(ERROR) << "Fail to add queue_svc";
-        return -1;
-    }
+    // if (server.AddService(&queue_svc,
+    //                       brpc::SERVER_DOESNT_OWN_SERVICE,
+    //                       "/v1/queue/start   => start,"
+    //                       "/v1/queue/stop    => stop,"
+    //                       "/v1/queue/stats/* => getstats") != 0)
+    // {
+    //     LOG(ERROR) << "Fail to add queue_svc";
+    //     return -1;
+    // }
 
     // Start the server.
     brpc::ServerOptions options;
