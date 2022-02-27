@@ -8,7 +8,7 @@ CC=gcc
 CXX=g++
 GCC_VERSION=100201
 STATIC_LINKINGS=
-DYNAMIC_LINKINGS=-lpthread -lssl -lcrypto -ldl -lz -lrt -lgflags -lprotobuf -lleveldb -luuid
+DYNAMIC_LINKINGS=-lpthread -lssl -lcrypto -ldl -lz -lrt -lgflags -lprotobuf -lleveldb -ljsoncpp -luuid
 CPPFLAGS=-DBRPC_WITH_GLOG=0 -DGFLAGS_NS=gflags
 ifeq ($(NEED_LIBPROTOC), 1)
     DYNAMIC_LINKINGS+=-lprotoc

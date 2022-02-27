@@ -13,6 +13,7 @@
 
 #include "login.pb.h"
 #include "login.h"
+#include "common.h"
 
 DEFINE_string(ip_port, "127.0.0.1:10001", "TCP Port of this server");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
@@ -23,6 +24,8 @@ DEFINE_int32(logoff_ms, 2000, "Maximum duration of server's LOGOFF state "
 DEFINE_string(certificate, "../cert.pem", "Certificate file path to enable SSL");
 DEFINE_string(private_key, "../key.pem", "Private key file path to enable SSL");
 DEFINE_string(ciphers, "", "Cipher suite used for SSL connections");
+
+login_namespace::Login *ao;
 
 // 日志配置
 void configLog()
@@ -66,20 +69,13 @@ namespace login_proto
 
             // 请求
             std::string body = cntl->request_attachment().to_string();
-            std::string err;
-            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
-            if (!err.empty())
-            {
-                LOG(ERROR) << "err" << err;
-            }
+            common::json2pb(body, req);
 
             // 逻辑处理入口
-            login_namespace::Login ao;
-            ao.regist(req, resp);
+            ao->regist(req, resp);
 
             // 返回
-            std::string respData;
-            json2pb::ProtoMessageToJson(resp, &respData);
+            std::string respData = common::pb2json(resp);
 
             // 返回前端
             cntl->http_response().set_content_type("application/json");
@@ -102,22 +98,17 @@ namespace login_proto
             login_proto::LoginResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            std::string err;
-            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
-            if (!err.empty())
-            {
-                LOG(ERROR) << "err" << err;
-            }
+            common::json2pb(body, req);
+
             // 逻辑处理入口
-            login_namespace::Login ao;
-            ao.login(req, resp);
+            ao->login(req, resp);
 
             // 返回
-            std::string respData;
-            json2pb::ProtoMessageToJson(resp, &respData);
+            std::string respData = common::pb2json(resp);
 
             // 返回前端
-            cntl->http_response().set_content_type("application/json");
+            cntl->http_response()
+                .set_content_type("application/json");
             butil::IOBufBuilder os;
             os << respData;
             os.move_to(cntl->response_attachment());
@@ -134,6 +125,7 @@ int main(int argc, char *argv[])
     GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
 
     configLog();
+    ao = new login_namespace::Login;
 
     // Generally you only need one Server.
     brpc::Server server;

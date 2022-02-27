@@ -1,5 +1,6 @@
 #include "sql.h"
 #include <butil/logging.h>
+#include "errorEnum.pb.h"
 
 using namespace std;
 
@@ -112,13 +113,16 @@ void MyDB::EXIT_ERROR(string msg)
 {
 }
 
-bool MyDB::exeSQL(string sql)
+// 第一个返回值是状态码，第二个参数是查询值
+tuple<int, vector<vector<string>>> MyDB::execSQL(string sql)
 {
+	// 结果
+	vector<vector<string>> res;
 	// mysql_query()执行成功返回0,执行失败返回非0值。
 	if (mysql_query(mysql, sql.c_str()))
 	{
-		cout << "Query Error: " << mysql_error(mysql);
-		return false;
+		LOG(ERROR) << "Query Error: " << mysql_error(mysql);
+		return make_tuple(errorEnum::MYSQL_QUERY_ERR, res);
 	}
 	else // 查询成功
 	{
@@ -127,18 +131,22 @@ bool MyDB::exeSQL(string sql)
 		{
 			int num_fields = mysql_num_fields(result); //获取结果集中总共的字段数，即列数
 			int num_rows = mysql_num_rows(result);	   //获取结果集中总共的行数
-			for (int i = 0; i < num_rows; i++)		   //输出每一行
+
+			res.resize(num_rows);
+
+			for (int i = 0; i < num_rows; i++) //输出每一行
 			{
 				//获取下一行数据
 				row = mysql_fetch_row(result);
 				if (row < 0)
 					break;
 
+				vector<string> tmp(num_fields);
 				for (int j = 0; j < num_fields; j++) //输出每一字段
 				{
-					cout << row[j] << "\t\t";
+					tmp.push_back(string(row[j]));
 				}
-				cout << endl;
+				res.push_back(tmp);
 			}
 		}
 		else // result==NULL
@@ -150,11 +158,11 @@ bool MyDB::exeSQL(string sql)
 			}
 			else // error
 			{
-				cout << "Get result error: " << mysql_error(mysql);
-				return false;
+				LOG(ERROR) << "Get result error: " << mysql_error(mysql);
+				return make_tuple(errorEnum::MYSQL_UPDATE_ERR, res);
 			}
 		}
 	}
 
-	return true;
+	return make_tuple(errorEnum::SUCCESS, res);
 }

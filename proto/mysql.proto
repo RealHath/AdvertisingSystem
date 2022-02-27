@@ -4,12 +4,18 @@ package mysql_proto;
 
 option cc_generic_services = true;
 
+// @Info
+message content {
+    repeated string field = 1;
+}
+
 //数据库存储
 message SaveReq {
     optional string cmd = 1;
 }
 message SaveResp {
     optional int32 err = 1;
+    repeated content info = 2;//查询的数据
 }
 
 message HttpRequest {

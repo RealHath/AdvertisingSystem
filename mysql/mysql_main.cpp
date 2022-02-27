@@ -6,6 +6,7 @@
 #include <thread>
 #include <condition_variable>
 #include <mutex>
+#include <queue>
 
 #include <gflags/gflags.h>
 #include <butil/logging.h>
@@ -13,6 +14,8 @@
 #include "mysql.pb.h"
 #include "errorEnum.pb.h"
 #include "sql.h"
+
+#include "common.h"
 
 DEFINE_string(ip_port, "127.0.0.1:9000", "TCP Port of this server");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
@@ -59,17 +62,29 @@ namespace mysql_proto
                 LOG(WARNING) << " sql queue curent size:" << g_cmdQueue.size();
             }
 
-            LOG(INFO) << "sql: " << req->cmd();
-            bool flag = true;
-            g_cmdQueue.push(req->cmd());
-            if (flag)
+            string sql = req->cmd();
+            LOG(INFO) << "sql: " << sql;
+            auto res = MyDB::getInstance()->execSQL(sql);
+
+            // 测试
+            // g_cmdQueue.push(req->cmd());
+            // auto res = MyDB::getInstance()->execSQL(g_cmdQueue.front());
+            // g_cmdQueue.pop();
+
+            auto vec = std::get<1>(res);
+
+            if (vec.size())
             {
-                resp->set_err(errorEnum::SUCCESS);
+                for (size_t i = 0; i < vec.size(); ++i)
+                {
+                    auto *tmp = resp->add_info();
+                    for (size_t j = 0; j < vec[i].size(); ++j)
+                    {
+                        tmp->add_field(vec[i][j]);
+                    }
+                }
             }
-            else
-            {
-                resp->set_err(errorEnum::MYSQL_QUERY_ERR);
-            }
+            resp->set_err(std::get<0>(res));
         }
     };
 } // namespace mysql
@@ -109,17 +124,21 @@ void mysqlConfig()
 
 static void mysqlThread()
 {
-    LOG(INFO) << "startThread2";
     while (true)
     {
-        LOG(INFO) << "线程启动";
         // 阻塞等待
         g_cond.wait(g_lock, [&]()
                     { return g_cmdQueue.size(); });
 
-        LOG(INFO) << "线程启动之后";
-        MyDB::getInstance()->exeSQL(g_cmdQueue.front());
+        auto res = MyDB::getInstance()->execSQL(g_cmdQueue.front());
         g_cmdQueue.pop();
+
+        if (std::get<0>(res) == errorEnum::SUCCESS)
+        {
+        }
+        else
+        {
+        }
     }
 }
 
@@ -133,8 +152,8 @@ int main(int argc, char *argv[])
 
     configLog();
     mysqlConfig();
-    std::thread t(mysqlThread);
-    t.detach();
+    // std::thread t(mysqlThread);
+    // t.detach();
 
     // Generally you only need one Server.
     brpc::Server server;
@@ -145,9 +164,11 @@ int main(int argc, char *argv[])
     // Add services into server. Notice the second parameter, because the
     // service is put on stack, we don't want server to delete it, otherwise
     // use brpc::SERVER_OWNS_SERVICE.
+    // if (server.AddService(&http_svc,
+    //                       brpc::SERVER_DOESNT_OWN_SERVICE,
+    //                       "/mysql/SaveDBV2 => SaveDBV2") != 0)
     if (server.AddService(&http_svc,
-                          brpc::SERVER_DOESNT_OWN_SERVICE,
-                          "/mysql/SaveDBV2 => SaveDBV2") != 0)
+                          brpc::SERVER_DOESNT_OWN_SERVICE) != 0)
     {
         LOG(ERROR) << "Fail to add http_svc";
         return -1;

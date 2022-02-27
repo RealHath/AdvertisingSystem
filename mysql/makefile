@@ -3,7 +3,7 @@ include $(BRPC_PATH)/config.mk
 WORKPATH = $(HOME)/AdvertisingSystem
 
 # cpp源文件
-SRCS = $(wildcard *.cpp $(PWD)/ao/*.cpp)
+SRCS = $(wildcard *.cpp $(PWD)/ao/*.cpp $(WORKPATH)/util/ao/*.cpp)
 DIRS = $(notdir $(SRCS))
 OBJS = $(patsubst %.cpp, %.o, $(DIRS))
 
@@ -17,10 +17,11 @@ PROTOOBJS = $(patsubst %.pb.cc, %.pb.o, $(PROTODIRS))
 INCLUDE = -I$(PWD) -I$(PWD)/include -I$(HDRS) -I$(WORKPATH)/proto  \
 -I$(BRPC_INCLUDE_PATH) -I$(BRPC_PATH)/src \
 -I$(WORKPATH)/util\
+-I$(WORKPATH)/util/include\
 
 # -L指定库文件目录，-l指定静态库名字(去掉文件名中的lib前缀和.a后缀)
 LIB += -L$(WORKPATH)/lib -L$(LIBS) -L/usr/lib64/mysql\
--lprotobuf -lbrpc -lgflags -lmysqlclient
+-lprotobuf -lbrpc -lgflags -lmysqlclient -ljsoncpp -luuid
 # 开启编译warning和设置优化等级
 # CFLAGS = -Wall -O2
 CFLAGS += $(CPPFLAGS) -DNDEBUG -O2 -D__const__= -pipe -W -Wall -fPIC -fno-omit-frame-pointer -faligned-new\

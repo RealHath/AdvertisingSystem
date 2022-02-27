@@ -7,4 +7,5 @@ option cc_generic_services = true;
 enum ErrorCode {
     SUCCESS = 0;    // 成功
     MYSQL_QUERY_ERR = 1;// mysql查询失败
+    MYSQL_UPDATE_ERR = 2;// mysql增删改失败
 }

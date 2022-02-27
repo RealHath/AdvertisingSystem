@@ -6,11 +6,17 @@
 #include <uuid/uuid.h>
 #include "json2pb.h"
 
-// json转pb
-void json2pb(const std::string &json, google::protobuf::Message &message);
-// pb转json
-std::string pb2json(const google::protobuf::Message &message);
-// 生成uuid
-std::string genUUID();
+namespace common
+{
+    // json转pb
+    void json2pb(const std::string &json, google::protobuf::Message &message);
+    // pb转json
+    std::string pb2json(const google::protobuf::Message &message);
+    // 生成uuid
+    std::string genUUID();
+
+} // namespace common
+
+
 
 #endif

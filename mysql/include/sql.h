@@ -4,7 +4,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <mysql/mysql.h>
-#include <queue>
+#include <vector>
+#include <tuple>
+
 using namespace std;
 
 class MyDB
@@ -23,7 +25,7 @@ public:
 	bool updateValues(string tablename, string updatename, string values, string clounmname, string keyname); //修改数据
 	void EXIT_ERROR(string msg);
 	MYSQL_RES *searchValuesToRes(std::string sql);
-	bool exeSQL(string sql);
+	tuple<int, vector<vector<string>>> execSQL(string sql);
 
 public:
 	MYSQL_ROW getRow(void);

@@ -5,6 +5,9 @@
 #include <brpc/channel.h>
 #include <butil/logging.h>
 #include "mysql.pb.h"
+#include <tuple>
+#include <vector>
+#include <string>
 
 DEFINE_string(attachment, "", "Carry this along with requests");
 DEFINE_string(protocol, "baidu_std", "Protocol type. Defined in src/brpc/options.proto");
@@ -19,6 +22,7 @@ class MysqlSingletion
 {
 public:
     static brpc::Channel channel;
+    static mysql_proto::HttpService_Stub stub;
 
 public:
     static MysqlSingletion *
@@ -38,6 +42,7 @@ public:
         {
             LOG(ERROR) << "Fail to initialize channel";
         }
+        stub(&channel);
     }
 
     ~MysqlSingletion()
@@ -54,7 +59,7 @@ public:
     }
     void exec(std::string sql)
     {
-        static mysql_proto::HttpService_Stub stub(&channel);
+
         mysql_proto::SaveReq request;
         mysql_proto::SaveResp response;
         brpc::Controller cntl;
