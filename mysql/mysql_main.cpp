@@ -3,6 +3,9 @@
 #include <memory>
 #include <sys/stat.h>
 #include <mysql/mysql.h>
+#include <thread>
+#include <condition_variable>
+#include <mutex>
 
 #include <gflags/gflags.h>
 #include <butil/logging.h>
@@ -22,6 +25,13 @@ DEFINE_int32(port, 3306, "mysql port");
 DEFINE_string(user, "root", "mysql user");
 DEFINE_string(password, "mysqlroot", "mysql password");
 DEFINE_string(database, "ADSystem", "mysql database");
+DEFINE_uint64(MAXSIZE, 1024, "queue maxsize");
+
+// 线程同步
+std::mutex g_mtx;
+std::unique_lock<std::mutex> g_lock(g_mtx);
+std::condition_variable g_cond;
+std::queue<std::string> g_cmdQueue;
 
 namespace mysql_proto
 {
@@ -44,15 +54,21 @@ namespace mysql_proto
             brpc::Controller *cntl =
                 static_cast<brpc::Controller *>(cntl_base);
             // Fill response.
+            if (g_cmdQueue.size() > FLAGS_MAXSIZE)
+            {
+                LOG(WARNING) << " sql queue curent size:" << g_cmdQueue.size();
+            }
+
             LOG(INFO) << "sql: " << req->cmd();
-            bool flag = MyDB::getInstance()->exeSQL(req->cmd());
+            bool flag = true;
+            g_cmdQueue.push(req->cmd());
             if (flag)
             {
-                resp->set_err(0);
+                resp->set_err(errorEnum::SUCCESS);
             }
             else
             {
-                resp->set_err(errorEnum::SUCCESS);
+                resp->set_err(errorEnum::MYSQL_QUERY_ERR);
             }
         }
     };
@@ -81,9 +97,29 @@ void configLog()
 void mysqlConfig()
 {
     bool flag = MyDB::getInstance()->connect(FLAGS_url, FLAGS_port, FLAGS_user, FLAGS_password, FLAGS_database);
-    if (!flag)
+    if (flag)
     {
-        LOG(ERROR) << "connect failed!";
+        LOG(INFO) << "connect mysql successed!";
+    }
+    else
+    {
+        LOG(ERROR) << "connect mysql failed!";
+    }
+}
+
+static void mysqlThread()
+{
+    LOG(INFO) << "startThread2";
+    while (true)
+    {
+        LOG(INFO) << "线程启动";
+        // 阻塞等待
+        g_cond.wait(g_lock, [&]()
+                    { return g_cmdQueue.size(); });
+
+        LOG(INFO) << "线程启动之后";
+        MyDB::getInstance()->exeSQL(g_cmdQueue.front());
+        g_cmdQueue.pop();
     }
 }
 
@@ -97,6 +133,8 @@ int main(int argc, char *argv[])
 
     configLog();
     mysqlConfig();
+    std::thread t(mysqlThread);
+    t.detach();
 
     // Generally you only need one Server.
     brpc::Server server;

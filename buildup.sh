@@ -43,5 +43,9 @@ sudo systemctl enable mariadb
 # mysql_secure_installation配置mysql  https://www.cnblogs.com/yhongji/p/9783065.html
 sudo yum -y install mysql-devel
 
+# json2pb
+
 # 安装杂项
 sudo yum -y install zip
+sudo yum -y install libuuid-devel
+sudo yum -y install libcurl-devel

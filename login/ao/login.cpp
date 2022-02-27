@@ -2,6 +2,7 @@
 
 #include "login.h"
 #include "mysqlSave.h"
+#include "common.h"
 
 using namespace std;
 
@@ -21,14 +22,14 @@ namespace login_namespace
     {
         string username = req.username();
         string password = req.password();
-        string phone = req.phone();
+        uint64_t phone = req.phone();
 
         // 先查库有没有数据
 
         // 没有再注册
-        string uuid;
+        string uuid = genUUID();
 
         resp.set_err(0);
-        resp.set_uuid()
+        resp.set_uuid(uuid);
     }
 }

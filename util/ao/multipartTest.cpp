@@ -21,7 +21,7 @@
 using namespace std;
 
 // 先找到前端的分隔符，然后再用解析器分割
-int main()
+int main2()
 {
 #ifdef TEST_PARSER
 	MultipartParser parser;

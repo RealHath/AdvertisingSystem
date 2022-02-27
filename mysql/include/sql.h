@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <mysql/mysql.h>
+#include <queue>
 using namespace std;
 
 class MyDB

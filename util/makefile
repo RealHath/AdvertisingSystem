@@ -3,7 +3,7 @@ include $(BRPC_PATH)/config.mk
 WORKPATH = $(HOME)/AdvertisingSystem
 
 # cpp源文件
-SRCS = $(wildcard *.cpp $(PWD)/ao/*.cpp $(WORKPATH)/util/ao/*.cpp)
+SRCS = $(wildcard *.cpp $(PWD)/ao/*.cpp)
 DIRS = $(notdir $(SRCS))
 OBJS = $(patsubst %.cpp, %.o, $(DIRS))
 
@@ -14,22 +14,21 @@ PROTODIRS = $(notdir $(PROTOSRCS))
 PROTOOBJS = $(patsubst %.pb.cc, %.pb.o, $(PROTODIRS))
 
 # -I指定头文件目录
-INCLUDE = -I$(PWD) -I$(PWD)/include -I$(HDRS) -I$(WORKPATH)/proto -I$(WORKPATH)/util/include \
+INCLUDE = -I$(PWD) -I$(PWD)/include -I$(HDRS) -I$(WORKPATH)/proto -L/usr/lib64 \
 -I$(BRPC_INCLUDE_PATH) -I$(BRPC_PATH)/src \
--I$(WORKPATH)/util
 
 # -L指定库文件目录，-l指定静态库名字(去掉文件名中的lib前缀和.a后缀)
-LIB += -L$(WORKPATH)/lib -L$(LIBS)\
--lprotobuf -lbrpc -lgflags -luuid
+LIB += -L$(WORKPATH)/lib -L$(LIBS) -L/usr/local/lib/\
+-lprotobuf -lbrpc -lgflags -luuid -ljsoncpp
 # 开启编译warning和设置优化等级
 # CFLAGS = -Wall -O2
 CFLAGS += $(CPPFLAGS) -DNDEBUG -O2 -D__const__= -pipe -W -Wall -Wno-unused-parameter -fPIC -fno-omit-frame-pointer -faligned-new
 
-TARGET = login_main
+TARGET = util_main
 
 .PHONY:all clean proto
 
-all:proto $(TARGET)
+all: proto $(TARGET)
 # 链接时候指定库文件目录及库文件名
 $(TARGET):$(PROTOOBJS) $(OBJS)
 	@echo "> link"

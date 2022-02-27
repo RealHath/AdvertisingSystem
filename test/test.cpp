@@ -53,7 +53,7 @@ namespace test
             LOG(INFO) << "body: " << body;
 
             std::string err;
-            json2pb::JsonToProtoMessage(body, (google::protobuf::Message *)&req, &err);
+            json2pb::JsonToProtoMessage(body, &req, &err);
             if (!err.empty())
             {
                 LOG(ERROR) << "err" << err;

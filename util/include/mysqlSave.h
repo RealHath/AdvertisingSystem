@@ -18,7 +18,7 @@ DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 class MysqlSingletion
 {
 public:
-    brpc::Channel channel;
+    static brpc::Channel channel;
 
 public:
     static MysqlSingletion *
@@ -54,12 +54,13 @@ public:
     }
     void exec(std::string sql)
     {
-        mysql::HttpService_Stub *stub(&channel);
-        mysql::SaveReq request;
-        mysql::SaveResp response;
-        request.set_message(sql);
+        static mysql_proto::HttpService_Stub stub(&channel);
+        mysql_proto::SaveReq request;
+        mysql_proto::SaveResp response;
+        brpc::Controller cntl;
+        request.set_cmd(sql);
         stub.SaveDBV2(&cntl, &request, &response, NULL);
-        if (response->err() != 0)
+        if (response.err() != 0)
         {
             LOG(ERROR) << "error mysql exec";
         }
