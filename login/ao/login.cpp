@@ -5,6 +5,8 @@
 #include "common.h"
 #include "mysql.pb.h"
 #include <brpc/channel.h>
+#include "errorEnum.pb.h"
+#include <time.h>
 
 DEFINE_string(attachment, "", "Carry this along with requests");
 DEFINE_string(protocol, "baidu_std", "Protocol type. Defined in src/brpc/options.proto");
@@ -28,6 +30,7 @@ namespace login_namespace
     int Login::login(login_proto::LoginReq &req, login_proto::LoginResp &resp)
     {
         LOG(INFO) << "调用 login";
+        return 0;
     }
     int Login::regist(login_proto::RegisterReq &req, login_proto::RegisterResp &resp)
     {
@@ -35,8 +38,10 @@ namespace login_namespace
         string username = req.username();
         string password = req.password();
         uint64_t phone = req.phone();
-
-        string sql = "SELECT uuid FROM user WHERE username=" + username + " and password=" + password;
+        char s[255];
+        sprintf(s, "SELECT uuid FROM user WHERE username='%s' and password='%s';",
+                username.c_str(), password.c_str());
+        string sql(s);
 
         // 先查库有没有数据
         mysql_proto::SaveReq request;
@@ -45,12 +50,42 @@ namespace login_namespace
 
         invoke(request, response);
 
-        // 没有再注册
-        string uuid = common::genUUID();
+        string uuid;
+        if (response.err() == errorEnum::SUCCESS)
+        {
+            if (response.info_size() <= 0)
+            {
+                // 没有再注册
+                uuid = common::genUUID();
+                resp.set_err(errorEnum::SUCCESS);
+                resp.set_msg("注册成功");
 
-        resp.set_err(0);
-        resp.set_msg("调用成功");
-        resp.set_uuid(uuid);
+                char buf[255];
+                sprintf(buf, "INSERT INTO user VALUES(null,'%s','%s',%lu,'%s',%ld);",
+                        username.c_str(), password.c_str(), phone, uuid.c_str(), time(NULL));
+
+                sql = string(buf);
+                request.clear_cmd();
+                request.set_cmd(sql);
+                invoke(request, response);
+            }
+            else
+            {
+                cout << common::pb2json(response);
+                auto tmp = response.info(0);
+                uuid = tmp.field(0);
+                resp.set_err(errorEnum::HASBEEN_REGISTER);
+                resp.set_msg("已注册");
+            }
+            resp.set_uuid(uuid);
+        }
+        else
+        {
+            resp.set_err(errorEnum::MYSQL_QUERY_ERR);
+            resp.set_msg("mysql查询失败");
+        }
+
+        return response.err();
     }
 
     void Login::invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response)

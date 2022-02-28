@@ -49,3 +49,4 @@ sudo yum -y install mysql-devel
 sudo yum -y install zip
 sudo yum -y install libuuid-devel
 sudo yum -y install libcurl-devel
+yum -y install devtoolset-11

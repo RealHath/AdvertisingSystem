@@ -77,10 +77,16 @@ namespace mysql_proto
             {
                 for (size_t i = 0; i < vec.size(); ++i)
                 {
-                    auto *tmp = resp->add_info();
-                    for (size_t j = 0; j < vec[i].size(); ++j)
+                    if (vec[i].size())
                     {
-                        tmp->add_field(vec[i][j]);
+                        auto *tmp = resp->add_info();
+                        for (size_t j = 0; j < vec[i].size(); ++j)
+                        {
+                            if (vec[i][j].size())
+                            {
+                                tmp->add_field(vec[i][j]);
+                            }
+                        }
                     }
                 }
             }
