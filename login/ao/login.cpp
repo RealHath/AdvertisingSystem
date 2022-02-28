@@ -29,8 +29,48 @@ namespace login_namespace
     }
     int Login::login(login_proto::LoginReq &req, login_proto::LoginResp &resp)
     {
-        LOG(INFO) << "调用 login";
-        return 0;
+        // 1. 处理入参
+        string username = req.username();
+        string password = req.password();
+        char s[255];
+        sprintf(s, "SELECT uuid FROM user WHERE username='%s' and password='%s';",
+                username.c_str(), password.c_str());
+        string sql(s);
+
+        // 先查库有没有数据
+        mysql_proto::SaveReq request;
+        mysql_proto::SaveResp response;
+        request.set_cmd(sql);
+
+        invoke(request, response);
+
+        if (response.err() == errorEnum::SUCCESS)
+        {
+            if (response.info_size() <= 0)
+            {
+                // 没有再注册
+                uuid = common::genUUID();
+                resp.set_err(errorEnum::NO_ACCOUNT);
+                resp.set_msg("没有此账号");
+                return errorEnum::NO_ACCOUNT;
+            }
+            else
+            {
+                auto tmp = response.info(0);
+                string uuid = tmp.field(0);
+                resp.set_err(errorEnum::SUCCESS);
+                resp.set_msg("登陆成功");
+                resp.set_uuid(uuid);
+                return errorEnum::SUCCESS;
+            }
+        }
+        else
+        {
+            resp.set_err(errorEnum::MYSQL_QUERY_ERR);
+            resp.set_msg("mysql查询失败");
+        }
+
+        return response.err();
     }
     int Login::regist(login_proto::RegisterReq &req, login_proto::RegisterResp &resp)
     {
@@ -71,7 +111,6 @@ namespace login_namespace
             }
             else
             {
-                cout << common::pb2json(response);
                 auto tmp = response.info(0);
                 uuid = tmp.field(0);
                 resp.set_err(errorEnum::HASBEEN_REGISTER);

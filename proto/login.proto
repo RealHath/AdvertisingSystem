@@ -22,12 +22,12 @@ message RegisterResp {
 message LoginReq {
     optional string username = 1;
     optional string password = 2;
-    optional string uuid = 3;   // 用户唯一标识
 }
 
 message LoginResp {
     optional uint32 err = 1;
     optional string msg = 2;
+    optional string uuid = 3;   // 用户唯一标识
 }
 
 message HttpRequest {
