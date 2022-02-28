@@ -1,0 +1,57 @@
+syntax = "proto2";
+
+package money_proto;
+
+// 注册登录的接口
+option cc_generic_services = true;
+
+// 获得所有信息
+message GetFundInfoReq {
+    optional string uuid = 1;
+}
+message GetFundInfoResp {
+    optional int32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;
+    optional double amount = 4;//总金额
+    optional double welfare = 5;//红包福利
+}
+
+// 充值
+message RechargeReq {
+    optional string uuid = 1;
+    optional double money = 2;
+}
+message RechargeResp {
+    optional int32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;
+    optional double amount = 4;//总金额
+    optional double welfare = 5;//红包福利
+}
+
+// 扣费
+message DeductionReq {
+    optional string uuid = 1;
+    optional double money = 2;
+}
+message DeductionResp {
+    optional int32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;
+    optional double amount = 4;//总金额
+    optional double welfare = 5;//红包福利
+}
+
+message HttpRequest {
+
+};
+message HttpResponse {
+
+};
+
+service HttpService {
+    rpc GetFundInfo (HttpRequest) returns (HttpResponse);  // 获得所有信息
+    rpc Recharge (HttpRequest) returns (HttpResponse);     // 充值
+    rpc Deduction (HttpRequest) returns (HttpResponse);     // 扣费
+}

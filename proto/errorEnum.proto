@@ -10,4 +10,5 @@ enum ErrorCode {
     MYSQL_UPDATE_ERR = 2;// mysql增删改失败
     HASBEEN_REGISTER = 3;// 已注册
     NO_ACCOUNT      = 4;   // 没有此账号
+    MYSQL_EMPTY     = 5;    //数据库空
 }
