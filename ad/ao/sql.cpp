@@ -3,10 +3,9 @@
 #include "errorEnum.pb.h"
 #include <mutex>
 
-using namespace std;
-
 std::mutex g_mtx;
-std::unique_lock<std::mutex> g_lock(g_mtx);
+
+using namespace std;
 
 MyDB::MyDB(/* args */)
 {
@@ -45,95 +44,26 @@ bool MyDB::connect(std::string host, int port, std::string user, std::string pas
 	}
 }
 
-//插入数据
-bool MyDB::insertValues(std::string tablename, string values) { return false; }
-//删除数据
-bool MyDB::delValues(std::string tablename, std::string clounmname, std::string keyname) { return false; }
-//查询数据
-bool MyDB::searchValues(std::string sql, int num)
-{
-	LOG(INFO) << "sql:" << sql;
-	int res = mysql_query(mysql, sql.c_str());
-	if (res == 0)
-	{
-		// std::cout << "serchValues successed!" << std::endl;
-		// return true;
-	}
-	else
-	{
-		LOG(ERROR) << "serchValues failed!";
-		// return false;
-	}
-	result = mysql_store_result(mysql);
-	if (result) // 返回了结果集
-	{
-		int num_fields = mysql_num_fields(result); //获取结果集中总共的字段数，即列数
-		int num_rows = mysql_num_rows(result);	   //获取结果集中总共的行数
-		for (int i = 0; i < num_rows; i++)		   //输出每一行
-		{
-			//获取下一行数据
-			row = mysql_fetch_row(result);
-			if (row < 0)
-				break;
-
-			// for (int j = 0; j < num_fields; j++) //输出每一字段
-			// {
-			// 	std::cout << row[j] << "\t\t";
-			// }
-			// std::cout << std::endl;
-		}
-		return true;
-	}
-	return false;
-}
-//修改数据
-bool MyDB::updateValues(std::string tablename, std::string updatename, std::string values, std::string clounmname, std::string keyname)
-{
-	return false;
-}
-
-//查询数据
-MYSQL_RES *MyDB::searchValuesToRes(std::string sql)
-{
-	int res = mysql_query(mysql, sql.c_str());
-	if (res == 0)
-	{
-		std::cout << "serchValues successed!" << std::endl;
-		// return true;
-	}
-	else
-	{
-		std::cout << "serchValues failed!" << std::endl;
-		return nullptr;
-	}
-	result = mysql_store_result(mysql);
-	if (result->row_count > 0)
-		return result;
-	else
-		return nullptr;
-}
-
-void MyDB::EXIT_ERROR(string msg)
-{
-}
-
 // 第一个返回值是状态码，第二个参数是查询值
 tuple<int, vector<vector<string>>> MyDB::execSQL(string sql = "PING")
 {
-	std::lock_guard<std::mutex> lk(g_mtx);
+	std::lock_guard<std::mutex> g_lock(g_mtx);
 	if (sql == "PING")
 	{
+		LOG(INFO) << "Mysql Ping!!!!!";
 		mysql_ping(mysql);
 		return make_tuple(0, vector<vector<string>>());
 	}
+	LOG(INFO) << "SQL: " << sql;
 
 	// 结果
 	vector<vector<string>> res;
+	vector<vector<string>> res2;
 	// mysql_query()执行成功返回0,执行失败返回非0值。
 	if (mysql_query(mysql, sql.c_str()))
 	{
 		LOG(ERROR) << "Query Error: " << mysql_error(mysql);
-		return make_tuple(errorEnum::MYSQL_QUERY_ERR, res);
+		return make_tuple(errorEnum::MYSQL_QUERY_ERR, res2);
 	}
 	else // 查询成功
 	{
@@ -149,12 +79,13 @@ tuple<int, vector<vector<string>>> MyDB::execSQL(string sql = "PING")
 			{
 				//获取下一行数据
 				row = mysql_fetch_row(result);
-				if (row < 0)
+				if (row == nullptr)
 					break;
 
-				vector<string> tmp(num_fields);
+				vector<string> tmp;
 				for (int j = 0; j < num_fields; j++) //输出每一字段
 				{
+					cout << string(row[j]) << endl;
 					tmp.push_back(string(row[j]));
 				}
 				res.push_back(tmp);
@@ -170,10 +101,31 @@ tuple<int, vector<vector<string>>> MyDB::execSQL(string sql = "PING")
 			else // error
 			{
 				LOG(ERROR) << "Get result error: " << mysql_error(mysql);
-				return make_tuple(errorEnum::MYSQL_UPDATE_ERR, res);
+				return make_tuple(errorEnum::MYSQL_UPDATE_ERR, res2);
 			}
 		}
 	}
 
-	return make_tuple(errorEnum::SUCCESS, res);
+	// 清除空
+
+	if (res.size())
+	{
+		for (size_t i = 0; i < res.size(); ++i)
+		{
+			if (res[i].size())
+			{
+				vector<string> tmp;
+				for (size_t j = 0; j < res[i].size(); ++j)
+				{
+					// if (res[i][j].size())
+					// {
+					tmp.push_back(res[i][j]);
+					// }
+				}
+				res2.push_back(tmp);
+			}
+		}
+	}
+
+	return make_tuple(errorEnum::SUCCESS, res2);
 }

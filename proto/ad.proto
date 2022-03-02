@@ -1,0 +1,112 @@
+syntax = "proto2";
+
+package ad_proto;
+
+option cc_generic_services = true;
+
+//------------------------------------------------
+
+message CostPerClickReq {
+    optional string uuid = 1;
+}
+message CostPerClickResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
+}
+
+message CostPerMilleReq {
+}
+message CostPerMilleResp {
+}
+
+message CostPerActionReq {
+}
+message CostPerActionResp {
+}
+
+//-----------------------------------------------
+
+// 注册
+message RegisterReq {
+    optional string username = 1;
+    optional string password = 2;
+    optional uint64 phone = 3;
+}
+
+message RegisterResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;   // 用户唯一标识
+}
+
+// 登录
+message LoginReq {
+    optional string username = 1;
+    optional string password = 2;
+}
+
+message LoginResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;   // 用户唯一标识
+}
+// ----------------------------------------------------------------
+
+// 获得所有信息
+message GetFundInfoReq {
+    optional string uuid = 1;
+}
+message GetFundInfoResp {
+    optional int32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;
+    optional double amount = 4;//总金额
+    optional double welfare = 5;//红包福利
+}
+
+// 充值
+message RechargeReq {
+    optional string uuid = 1;
+    optional double money = 2;
+}
+message RechargeResp {
+    optional int32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;
+    optional double amount = 4;//总金额
+    optional double welfare = 5;//红包福利
+}
+
+// 扣费
+message DeductionReq {
+    optional string uuid = 1;
+    optional double money = 2;
+}
+message DeductionResp {
+    optional int32 err = 1;
+    optional string msg = 2;
+    optional string uuid = 3;
+    optional double amount = 4;//总金额
+    optional double welfare = 5;//红包福利
+}
+
+//-----------------------------------------------
+message HttpRequest {
+
+};
+message HttpResponse {
+
+};
+
+service HttpService {
+    rpc CostPerClick (HttpRequest) returns (HttpResponse);   // CPC单次点击
+    rpc CostPerMille (HttpRequest) returns (HttpResponse);   // CPM千次曝光广告
+    rpc CostPerAction (HttpRequest) returns (HttpResponse);   // CPA行动收费
+
+    rpc GetFundInfo (HttpRequest) returns (HttpResponse);  // 获得所有信息
+    rpc Recharge (HttpRequest) returns (HttpResponse);     // 充值
+    rpc Deduction (HttpRequest) returns (HttpResponse);     // 扣费
+
+    rpc Register (HttpRequest) returns (HttpResponse);  // 注册
+    rpc Login (HttpRequest) returns (HttpResponse);     // 登录
+}

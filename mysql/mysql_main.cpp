@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <queue>
+#include <chrono>
 
 #include <gflags/gflags.h>
 #include <butil/logging.h>
@@ -31,8 +32,6 @@ DEFINE_string(database, "ADSystem", "mysql database");
 DEFINE_uint64(MAXSIZE, 1024, "queue maxsize");
 
 // 线程同步
-std::mutex g_mtx;
-std::unique_lock<std::mutex> g_lock(g_mtx);
 std::condition_variable g_cond;
 std::queue<std::string> g_cmdQueue;
 
@@ -128,23 +127,31 @@ void mysqlConfig()
     }
 }
 
-static void mysqlThread()
+static void mysqlThread(void *)
 {
+    // while (true)
+    // {
+    //     // 阻塞等待
+    //     g_cond.wait(g_lock, [&]()
+    //                 { return g_cmdQueue.size(); });
+
+    //     auto res = MyDB::getInstance()->execSQL(g_cmdQueue.front());
+    //     g_cmdQueue.pop();
+
+    //     if (std::get<0>(res) == errorEnum::SUCCESS)
+    //     {
+    //     }
+    //     else
+    //     {
+    //     }
+    // }
     while (true)
     {
-        // 阻塞等待
-        g_cond.wait(g_lock, [&]()
-                    { return g_cmdQueue.size(); });
-
-        auto res = MyDB::getInstance()->execSQL(g_cmdQueue.front());
-        g_cmdQueue.pop();
-
-        if (std::get<0>(res) == errorEnum::SUCCESS)
-        {
-        }
-        else
-        {
-        }
+        std::this_thread::sleep_for(std::chrono::hours(7));
+        configLog();
+        LOG(INFO) << "mysql ping !!!!";
+        MyDB::getInstance()->execSQL("PING");
+        // std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 }
 
@@ -158,8 +165,8 @@ int main(int argc, char *argv[])
 
     configLog();
     mysqlConfig();
-    // std::thread t(mysqlThread);
-    // t.detach();
+    std::thread t(mysqlThread, nullptr);
+    t.detach();
 
     // Generally you only need one Server.
     brpc::Server server;

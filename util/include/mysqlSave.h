@@ -18,58 +18,20 @@ DEFINE_int32(timeout_ms, 100, "RPC timeout in milliseconds");
 DEFINE_int32(max_retry, 3, "Max retries(not including the first RPC)");
 DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 
-class MysqlSingletion
+void invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response)
 {
-public:
-    static brpc::Channel channel;
-    static mysql_proto::HttpService_Stub stub;
-
-public:
-    static MysqlSingletion *
-    getInstance()
+    brpc::Channel channel;
+    brpc::Controller cntl;
+    brpc::ChannelOptions options;
+    options.protocol = FLAGS_protocol;
+    options.connection_type = FLAGS_connection_type;
+    options.timeout_ms = FLAGS_timeout_ms /*milliseconds*/;
+    options.max_retry = FLAGS_max_retry;
+    if (channel.Init(FLAGS_server.c_str(), FLAGS_load_balancer.c_str(), &options) != 0)
     {
-        static MysqlSingletion t;
-        return &t;
+        LOG(ERROR) << "Fail to initialize channel";
     }
-    MysqlSingletion()
-    {
-        brpc::ChannelOptions options;
-        options.protocol = FLAGS_protocol;
-        options.connection_type = FLAGS_connection_type;
-        options.timeout_ms = FLAGS_timeout_ms /*milliseconds*/;
-        options.max_retry = FLAGS_max_retry;
-        if (channel.Init(FLAGS_server.c_str(), FLAGS_load_balancer.c_str(), &options) != 0)
-        {
-            LOG(ERROR) << "Fail to initialize channel";
-        }
-        stub(&channel);
-    }
-
-    ~MysqlSingletion()
-    {
-        brpc::ChannelOptions options;
-        options.protocol = FLAGS_protocol;
-        options.connection_type = FLAGS_connection_type;
-        options.timeout_ms = FLAGS_timeout_ms /*milliseconds*/;
-        options.max_retry = FLAGS_max_retry;
-        if (channel.Init(FLAGS_server.c_str(), FLAGS_load_balancer.c_str(), &options) != 0)
-        {
-            LOG(ERROR) << "Fail to initialize channel";
-        }
-    }
-    void exec(std::string sql)
-    {
-
-        mysql_proto::SaveReq request;
-        mysql_proto::SaveResp response;
-        brpc::Controller cntl;
-        request.set_cmd(sql);
-        stub.SaveDBV2(&cntl, &request, &response, NULL);
-        if (response.err() != 0)
-        {
-            LOG(ERROR) << "error mysql exec";
-        }
-    }
-};
-
+    mysql_proto::HttpService_Stub stub(&channel);
+    stub.SaveDBV2(&cntl, &request, &response, NULL);
+}
 #endif

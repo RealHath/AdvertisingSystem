@@ -10,6 +10,7 @@
 #include <json2pb/json_to_pb.h>
 #include <json2pb/pb_to_json.h>
 #include <brpc/http2.h>
+#include <boost/timer/timer.hpp>
 
 #include "money.pb.h"
 #include "money.h"
@@ -119,6 +120,29 @@ namespace money_proto
                        HttpResponse *,
                        google::protobuf::Closure *done)
         {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            money_proto::DeductionReq req;
+            money_proto::DeductionResp resp;
+
+            std::string body = cntl->request_attachment().to_string();
+            common::json2pb(body, req);
+
+            // 逻辑处理入口
+            ao->deduction(req, resp);
+
+            // 返回
+            std::string respData = common::pb2json(resp);
+
+            // 返回前端
+            cntl->http_response()
+                .set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
         }
     };
 }

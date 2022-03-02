@@ -48,11 +48,21 @@ namespace money_namespace
         {
             if (response.info_size() <= 0)
             {
-                // 没有再注册
-                uuid = common::genUUID();
-                resp.set_err(errorEnum::MYSQL_EMPTY);
-                resp.set_msg("数据库空");
-                return errorEnum::MYSQL_EMPTY;
+                // 初始化资金
+                char buf[255];
+                sprintf(buf, "INSERT INTO money(id,uuid,amount,welfare) VALUES(null,'%s',%lf,%lf);",
+                        uuid.c_str(), 0.0, 0.0);
+
+                sql = string(buf);
+                request.clear_cmd();
+                request.set_cmd(sql);
+                invoke(request, response);
+
+                resp.set_err(errorEnum::SUCCESS);
+                resp.set_msg("查找成功");
+                resp.set_uuid(uuid);
+                resp.set_amount(0);
+                resp.set_welfare(0);
             }
             else
             {
@@ -81,7 +91,7 @@ namespace money_namespace
     {
         // 1. 处理入参
         string uuid = req.uuid();
-        double uuid = req.money();
+        double money = req.money();
 
         char s[255];
         sprintf(s, "SELECT * FROM money WHERE uuid='%s';",
@@ -98,24 +108,33 @@ namespace money_namespace
         {
             if (response.info_size() <= 0)
             {
-                // 没有再注册
-                uuid = common::genUUID();
-                resp.set_err(errorEnum::SUCCESS);
-                resp.set_msg("注册成功");
+                resp.set_err(errorEnum::MYSQL_QUERY_ERR);
+                resp.set_msg("查找失败");
+                return errorEnum::MYSQL_QUERY_ERR;
+            }
+            else
+            {
+                auto tmp = response.info(0);
+                string uuid = tmp.field(1);
+                double amount = strtod(tmp.field(2).c_str(), nullptr);
+                double welfare = strtod(tmp.field(3).c_str(), nullptr);
+                amount += money;
 
                 char buf[255];
+                sprintf(buf, "UPDATE money SET amount=%lf WHERE uuid='%s';",
+                        amount, uuid.c_str());
 
                 sql = string(buf);
                 request.clear_cmd();
                 request.set_cmd(sql);
                 invoke(request, response);
-            }
-            else
-            {
-                auto tmp = response.info(0);
-                uuid = tmp.field(0);
-                resp.set_err(errorEnum::HASBEEN_REGISTER);
-                resp.set_msg("已注册");
+
+                resp.set_err(errorEnum::SUCCESS);
+                resp.set_msg("充值成功");
+                resp.set_uuid(uuid);
+                resp.set_amount(amount);
+                resp.set_welfare(welfare);
+                return errorEnum::SUCCESS;
             }
             resp.set_uuid(uuid);
         }
@@ -131,7 +150,60 @@ namespace money_namespace
     {
         // 1. 处理入参
         string uuid = req.uuid();
-        double uuid = req.money();
+        double money = req.money();
+
+        char s[255];
+        sprintf(s, "SELECT * FROM money WHERE uuid='%s';",
+                uuid.c_str());
+        string sql(s);
+
+        // 先查库有没有数据
+        mysql_proto::SaveReq request;
+        mysql_proto::SaveResp response;
+        request.set_cmd(sql);
+        invoke(request, response);
+
+        if (response.err() == errorEnum::SUCCESS)
+        {
+            if (response.info_size() <= 0)
+            {
+                resp.set_err(errorEnum::MYSQL_QUERY_ERR);
+                resp.set_msg("查找失败");
+                return errorEnum::MYSQL_QUERY_ERR;
+            }
+            else
+            {
+                auto tmp = response.info(0);
+                string uuid = tmp.field(1);
+                double amount = strtod(tmp.field(2).c_str(), nullptr);
+                double welfare = strtod(tmp.field(3).c_str(), nullptr);
+                amount -= money;
+
+                char buf[255];
+                sprintf(buf, "UPDATE money SET amount=%lf WHERE uuid='%s';",
+                        amount, uuid.c_str());
+
+                sql = string(buf);
+                request.clear_cmd();
+                request.set_cmd(sql);
+                invoke(request, response);
+
+                resp.set_err(errorEnum::SUCCESS);
+                resp.set_msg("扣费成功");
+                resp.set_uuid(uuid);
+                resp.set_amount(amount);
+                resp.set_welfare(welfare);
+                return errorEnum::SUCCESS;
+            }
+            resp.set_uuid(uuid);
+        }
+        else
+        {
+            resp.set_err(errorEnum::MYSQL_QUERY_ERR);
+            resp.set_msg("mysql查询失败");
+        }
+
+        return response.err();
     }
 
     void Money::invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response)
