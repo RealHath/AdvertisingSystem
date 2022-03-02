@@ -19,6 +19,8 @@ namespace ad_namespace
         int costPerClick(ad_proto::CostPerClickReq &req, ad_proto::CostPerClickResp &resp);    //获得所有信息
         int costPerMille(ad_proto::CostPerMilleReq &req, ad_proto::CostPerMilleResp &resp);    //充值
         int costPerAction(ad_proto::CostPerActionReq &req, ad_proto::CostPerActionResp &resp); //扣费
+        int putAdvertise(ad_proto::PutAdvertiseReq &req, ad_proto::PutAdvertiseResp &resp);    //广告投放
+
     public:
         int login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp);        //登录逻辑
         int regist(ad_proto::RegisterReq &req, ad_proto::RegisterResp &resp); //注册逻辑

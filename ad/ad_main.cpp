@@ -288,6 +288,36 @@ namespace ad_proto
             os << respData;
             os.move_to(cntl->response_attachment());
         }
+
+        void PutAdvertise(google::protobuf::RpcController *cntl_base,
+                          const HttpRequest *,
+                          HttpResponse *,
+                          google::protobuf::Closure *done)
+        {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            ad_proto::PutAdvertiseReq req;
+            ad_proto::PutAdvertiseResp resp;
+
+            std::string body = cntl->request_attachment().to_string();
+            common::json2pb(body, req);
+
+            // 逻辑处理入口
+            ad_ao->putAdvertise(req, resp);
+
+            // 返回
+            std::string respData = common::pb2json(resp);
+
+            // 返回前端
+            cntl->http_response()
+                .set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
+        }
     };
 }
 
@@ -327,11 +357,16 @@ void mysqlConfig()
 // ping mysql
 void pingMysql(void *)
 {
-    LOG(INFO) << "start pingMysql thread!";gdb
+    LOG(INFO) << "start pingMysql thread!";
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::hours(7));
-        MyDB::getInstance()->execSQL("PING");
+        // std::this_thread::sleep_for(std::chrono::seconds(7));
+        auto ret = MyDB::getInstance()->execSQL("PING");
+        if (std::get<0>(ret) != errorEnum::SUCCESS)
+        {
+            LOG(ERROR) << "mysql ping err!!!!";
+        }
     }
 }
 

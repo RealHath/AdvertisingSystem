@@ -42,6 +42,10 @@ namespace ad_namespace
     {
         return 0;
     }
+    int Ad::putAdvertise(ad_proto::PutAdvertiseReq &req, ad_proto::PutAdvertiseResp &resp)
+    {
+        return 0;
+    }
 
     //----------------------------------------------------------
     int Ad::login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp)
