@@ -166,3 +166,8 @@ vector<std::unordered_map<string, string>> MyDB::execute(string sql = "PING")
 
 	return res;
 }
+
+mysqlpp::Connection *MyDB::getConnection()
+{
+	return this->conn;
+}

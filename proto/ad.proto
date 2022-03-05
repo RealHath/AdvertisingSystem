@@ -24,6 +24,7 @@ message GetAdInfoResp {
 // CPC单次点击
 message CostPerClickReq {
     optional string uuid = 1;
+    optional uint64 id = 2;
 }
 message CostPerClickResp {
     optional uint32 err = 1;
@@ -33,19 +34,23 @@ message CostPerClickResp {
 // CPM千次曝光广告
 message CostPerMilleReq {
     optional string uuid = 1;
+    optional uint64 id = 2;
 }
 message CostPerMilleResp {
     optional uint32 err = 1;
     optional string msg = 2;
+    optional uint64 id = 3;
 }
 
 // CPA行动收费
 message CostPerActionReq {
     optional string uuid = 1;
+    optional uint64 id = 2;
 }
 message CostPerActionResp {
     optional uint32 err = 1;
     optional string msg = 2;
+    optional uint64 id = 3;
 }
 
 // 广告投放

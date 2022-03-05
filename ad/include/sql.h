@@ -21,6 +21,7 @@ public:
 	bool connect(string host, int port, string user, string passwd, string database);
 	tuple<int, vector<vector<string>>> execSQL(string sql);
 	vector<std::unordered_map<string, string>> execute(string sql);
+	mysqlpp::Connection *getConnection();
 
 private:
 	MyDB();

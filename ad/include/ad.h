@@ -11,6 +11,7 @@ using namespace std;
 namespace ad_namespace
 {
     class ADUser;
+    class Advertise;
     class Ad
     {
     public:
@@ -36,6 +37,9 @@ namespace ad_namespace
         void invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response);
         void reflectUser(std::unordered_map<string, string> &data);
         std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
+        std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
+        std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
+        bool initUser(string uuid); // 将用户数据加载到内存
     };
 }
 
