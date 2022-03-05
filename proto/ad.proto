@@ -6,6 +6,21 @@ option cc_generic_services = true;
 
 //------------------------------------------------
 
+// 广告信息
+message AdInfo {
+    optional uint64 id = 1;
+    optional double account = 2;      // 剩余金额
+    optional string content = 3;
+}
+message GetAdInfoReq {
+    optional string uuid = 1;
+}
+message GetAdInfoResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
+    repeated AdInfo info = 3; 
+}
+
 // CPC单次点击
 message CostPerClickReq {
     optional string uuid = 1;
@@ -43,6 +58,7 @@ message PutAdvertiseReq {
 message PutAdvertiseResp {
     optional uint32 err = 1;
     optional string msg = 2;
+    optional AdInfo info = 3;
 }
 
 //-----------------------------------------------
@@ -124,6 +140,7 @@ service HttpService {
     rpc CostPerMille (HttpRequest) returns (HttpResponse);   // CPM千次曝光广告
     rpc CostPerAction (HttpRequest) returns (HttpResponse);   // CPA行动收费
     rpc PutAdvertise (HttpRequest) returns (HttpResponse);   // 广告投放
+    rpc GetAdInfo (HttpRequest) returns (HttpResponse);   // 广告投放
 
     rpc GetFundInfo (HttpRequest) returns (HttpResponse);  // 获得所有信息
     rpc Recharge (HttpRequest) returns (HttpResponse);     // 充值

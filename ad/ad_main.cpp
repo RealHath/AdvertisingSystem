@@ -14,6 +14,8 @@
 #include "ad.h"
 #include "common.h"
 #include "sql.h"
+#include "errorEnum.pb.h"
+// #include "user.h"
 
 using namespace std;
 
@@ -61,7 +63,7 @@ namespace ad_proto
 
             // 请求
             std::string body = cntl->request_attachment().to_string();
-            cout << body << endl;
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -91,6 +93,7 @@ namespace ad_proto
             ad_proto::RechargeResp resp;
 
             std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -121,6 +124,7 @@ namespace ad_proto
             ad_proto::DeductionResp resp;
 
             std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -153,6 +157,7 @@ namespace ad_proto
 
             // 请求
             std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -182,6 +187,7 @@ namespace ad_proto
             ad_proto::LoginResp resp;
 
             std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -214,6 +220,7 @@ namespace ad_proto
 
             // 请求
             std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -243,6 +250,7 @@ namespace ad_proto
             ad_proto::CostPerMilleResp resp;
 
             std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -273,6 +281,7 @@ namespace ad_proto
             ad_proto::CostPerActionResp resp;
 
             std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -303,10 +312,42 @@ namespace ad_proto
             ad_proto::PutAdvertiseResp resp;
 
             std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
             ad_ao->putAdvertise(req, resp);
+
+            // 返回
+            std::string respData = common::pb2json(resp);
+
+            // 返回前端
+            cntl->http_response()
+                .set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
+        }
+
+        void GetAdInfo(google::protobuf::RpcController *cntl_base,
+                       const HttpRequest *,
+                       HttpResponse *,
+                       google::protobuf::Closure *done)
+        {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            ad_proto::GetAdInfoReq req;
+            ad_proto::GetAdInfoResp resp;
+
+            std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
+            common::json2pb(body, req);
+
+            // 逻辑处理入口
+            ad_ao->getAdInfo(req, resp);
 
             // 返回
             std::string respData = common::pb2json(resp);
@@ -360,13 +401,14 @@ void pingMysql(void *)
     LOG(INFO) << "start pingMysql thread!";
     while (true)
     {
-        std::this_thread::sleep_for(std::chrono::hours(7));
+        std::this_thread::sleep_for(std::chrono::hours(6));
         // std::this_thread::sleep_for(std::chrono::seconds(7));
-        auto ret = MyDB::getInstance()->execSQL("PING");
-        if (std::get<0>(ret) != errorEnum::SUCCESS)
-        {
-            LOG(ERROR) << "mysql ping err!!!!";
-        }
+        // auto ret = MyDB::getInstance()->execSQL("PING");
+        MyDB::getInstance()->execute("PING");
+        // if (std::get<0>(ret) != errorEnum::SUCCESS)
+        // {
+        //     LOG(ERROR) << "mysql ping err!!!!";
+        // }
     }
 }
 
@@ -402,6 +444,7 @@ int main(int argc, char *argv[])
                           "/ad/CostPerClick => CostPerClick,"
                           "/ad/CostPerMille => CostPerMille,"
                           "/ad/CostPerAction => CostPerAction,"
+                          "/ad/GetAdInfo => GetAdInfo,"
                           "/money/GetFundInfo => GetFundInfo,"
                           "/money/Recharge => Recharge,"
                           "/money/Deduction => Deduction,"

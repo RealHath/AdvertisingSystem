@@ -10,6 +10,7 @@ using namespace std;
 
 namespace ad_namespace
 {
+    class ADUser;
     class Ad
     {
     public:
@@ -20,6 +21,7 @@ namespace ad_namespace
         int costPerMille(ad_proto::CostPerMilleReq &req, ad_proto::CostPerMilleResp &resp);    //充值
         int costPerAction(ad_proto::CostPerActionReq &req, ad_proto::CostPerActionResp &resp); //扣费
         int putAdvertise(ad_proto::PutAdvertiseReq &req, ad_proto::PutAdvertiseResp &resp);    //广告投放
+        int getAdInfo(ad_proto::GetAdInfoReq &req, ad_proto::GetAdInfoResp &resp);             // 获取广告信息
 
     public:
         int login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp);        //登录逻辑
@@ -32,6 +34,8 @@ namespace ad_namespace
 
     private:
         void invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response);
+        void reflectUser(std::unordered_map<string, string> &data);
+        std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
     };
 }
 

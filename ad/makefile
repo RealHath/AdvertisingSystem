@@ -19,8 +19,8 @@ INCLUDE = -I$(PWD) -I$(PWD)/include -I$(HDRS) -I$(WORKPATH)/proto -I$(WORKPATH)/
 -I$(WORKPATH)/util/include
 
 # -L指定库文件目录，-l指定静态库名字(去掉文件名中的lib前缀和.a后缀)
-LIB += -L$(WORKPATH)/lib -L$(LIBS) -L/usr/lib64/mysql\
--lprotobuf -lbrpc -lgflags -luuid -ljsoncpp -lmysqlclient
+LIB += -L$(WORKPATH)/lib -L$(LIBS) -L/usr/lib64/mysql -L/usr/local/lib\
+-lprotobuf -lbrpc -lgflags -luuid -ljsoncpp -lmysqlclient -lmysqlpp
 # 开启编译warning和设置优化等级
 # CFLAGS = -Wall -O2
 CFLAGS += $(CPPFLAGS) -DNDEBUG -O0 -D__const__= -pipe -W -Wall -Wno-unused-parameter -fPIC -fno-omit-frame-pointer -faligned-new\

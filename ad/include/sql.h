@@ -6,7 +6,8 @@
 #include <mysql/mysql.h>
 #include <vector>
 #include <tuple>
-
+#include <mysql++/mysql++.h>
+#include <unordered_map>
 using namespace std;
 
 class MyDB
@@ -19,11 +20,7 @@ public:
 	//连接数据库
 	bool connect(string host, int port, string user, string passwd, string database);
 	tuple<int, vector<vector<string>>> execSQL(string sql);
-
-public:
-	MYSQL_ROW getRow(void);
-	MYSQL_RES *getResult(void);
-	MYSQL_FIELD *getField(void);
+	vector<std::unordered_map<string, string>> execute(string sql);
 
 private:
 	MyDB();
@@ -34,4 +31,6 @@ private:
 	MYSQL_ROW row;		//用于定义一个行对象，其内容含有一行的数据。
 	MYSQL_RES *result;	//用于定义一个存储数据库检索信息结果的对象。
 	MYSQL_FIELD *field; //用于定义一个存储字段信息的对象。
+	mysqlpp::Connection *conn;
+	mysqlpp::Query *query;
 };

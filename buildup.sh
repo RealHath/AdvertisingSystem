@@ -33,10 +33,13 @@ sudo yum -y install glog-devel
 
 git clone git://github.com/apache/incubator-brpc.git
 cd incubator-brpc/
-sh config_brpc.sh --headers="/usr/include" --libs="/usr/lib64 /usr/bin" --nodebugsymbols
+# sh config_brpc.sh --headers="/usr/include" --libs="/usr/lib64 /usr/bin" --nodebugsymbols
+sh config_brpc.sh --headers="/usr/include" --libs="/usr/lib64 /usr/bin"
 make
+# cp -f ./output/lib/libbrpc.* /usr/lib64/
+# cp -f ./output/lib/libbrpc.* /usr/local/lib64/
 
-# mysql
+# mysql,一定要用mysql++
 sudo yum -y install mariadb-server
 sudo systemctl start mariadb
 sudo systemctl enable mariadb
