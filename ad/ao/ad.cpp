@@ -251,14 +251,6 @@ namespace ad_namespace
             if (getUser(uuid) == nullptr)
             {
                 initUser(uuid);
-                // uint64_t phone = strtoul(ret[0]["phone"].c_str(), nullptr, 0);
-                // char buf[255];
-                // sprintf(buf, "SELECT * FROM money WHERE uuid='%s';",
-                //         uuid.c_str());
-                // string sql(buf);
-                // ret = MyDB::getInstance()->execute(sql);
-                // double amount = strtod(ret[0]["amount"].c_str(), nullptr);
-                // double welfare = strtod(ret[0]["welfare"].c_str(), nullptr);
             }
 
             resp.set_err(errorEnum::SUCCESS);
@@ -338,51 +330,6 @@ namespace ad_namespace
         resp.set_uuid(uuid);
         resp.set_amount(amount);
         resp.set_welfare(welfare);
-
-        // char s[255];
-        // sprintf(s, "SELECT * FROM money WHERE uuid='%s';",
-        //         uuid.c_str());
-        // string sql(s);
-
-        // 先查库有没有数据
-        // auto ret = MyDB::getInstance()->execute(sql);
-
-        // if (ret.size() <= 0)
-        // {
-        //     resp.set_err(errorEnum::NO_ACCOUNT);
-        //     resp.set_msg("没有此账号");
-        // }
-        // else
-        // {
-        //     auto tmp = ret[0];
-        //     string uuid = tmp["uuid"];
-        //     double amount = strtod(tmp["amount"].c_str(), nullptr);
-        //     double welfare = strtod(tmp["welfare"].c_str(), nullptr);
-
-        //     resp.set_err(errorEnum::SUCCESS);
-        //     resp.set_msg("查找成功");
-        //     resp.set_uuid(uuid);
-        //     resp.set_amount(amount);
-        //     resp.set_welfare(welfare);
-        // }
-
-        // 直接用内存数据
-        // auto user = getUser(uuid);
-        // if (user == nullptr)
-        // {
-        //     resp.set_err(errorEnum::NO_ACCOUNT);
-        //     resp.set_msg("没有此账号");
-        // }
-
-        // double amount = 0;
-        // double welfare = 0;
-
-        // resp.set_err(errorEnum::SUCCESS);
-        // resp.set_msg("查找成功");
-        // resp.set_uuid(uuid);
-        // resp.set_amount(amount);
-        // resp.set_welfare(welfare);
-
         return 0;
     }
     int Ad::recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp)
@@ -417,40 +364,6 @@ namespace ad_namespace
         resp.set_uuid(uuid);
         resp.set_amount(amount);
         resp.set_welfare(welfare);
-
-        // char s[255];
-        // sprintf(s, "SELECT * FROM money WHERE uuid='%s';",
-        //         uuid.c_str());
-        // string sql(s);
-
-        // // 先查库有没有数据
-        // auto ret = MyDB::getInstance()->execute(sql);
-
-        // if (ret.size() <= 0)
-        // {
-        //     resp.set_err(errorEnum::NO_ACCOUNT);
-        //     resp.set_msg("没有此账号");
-        // }
-        // else
-        // {
-        //     auto tmp = ret[0];
-        //     string uuid = tmp["uuid"];
-        //     double amount = strtod(tmp["amount"].c_str(), nullptr);
-        //     double welfare = strtod(tmp["welfare"].c_str(), nullptr);
-
-        //     resp.set_err(errorEnum::SUCCESS);
-        //     resp.set_msg("查找成功");
-        //     resp.set_uuid(uuid);
-        //     resp.set_amount(amount);
-        //     resp.set_welfare(welfare);
-        // }
-
-        // auto user = getUser(uuid);
-        // if (user == nullptr)
-        // {
-        //     resp.set_err(errorEnum::NO_ACCOUNT);
-        //     resp.set_msg("没有此账号");
-        // }
         return 0;
     }
     int Ad::deduction(ad_proto::DeductionReq &req, ad_proto::DeductionResp &resp)
