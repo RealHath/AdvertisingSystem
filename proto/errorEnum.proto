@@ -4,6 +4,7 @@ package errorEnum;
 
 option cc_generic_services = true;
 
+// 错误码
 enum ErrorCode {
     SUCCESS = 0;        // 成功
     MYSQL_QUERY_ERR = 1;// mysql查询失败
@@ -12,4 +13,14 @@ enum ErrorCode {
     NO_ACCOUNT      = 4;   // 没有此账号
     MYSQL_EMPTY     = 5;    //数据库空
     NO_AD           = 6;    // 没有此广告
+}
+
+// 广告类型
+enum ADType {
+    CLICK = 0;
+    MILLE = 1;
+    VISIT = 2;
+    BUY = 3;
+    TIME= 4;
+    SELL = 5;
 }

@@ -20,7 +20,7 @@
 using namespace std;
 
 // ip
-DEFINE_string(ip_port, "0.0.0.0:10004", "TCP Port of this server");
+DEFINE_string(ip_port, "0.0.0.0:10003", "TCP Port of this server");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
                                  "read/write operations during the last `idle_timeout_s'");
 DEFINE_int32(logoff_ms, 2000, "Maximum duration of server's LOGOFF state "
@@ -267,25 +267,117 @@ namespace ad_proto
             os.move_to(cntl->response_attachment());
         }
 
-        void CostPerAction(google::protobuf::RpcController *cntl_base,
-                           const HttpRequest *,
-                           HttpResponse *,
-                           google::protobuf::Closure *done)
+        void CostPerVisit(google::protobuf::RpcController *cntl_base,
+                          const HttpRequest *,
+                          HttpResponse *,
+                          google::protobuf::Closure *done)
         {
             brpc::ClosureGuard done_guard(done);
 
             brpc::Controller *cntl =
                 static_cast<brpc::Controller *>(cntl_base);
 
-            ad_proto::CostPerActionReq req;
-            ad_proto::CostPerActionResp resp;
+            ad_proto::CostPerVisitReq req;
+            ad_proto::CostPerVisitResp resp;
 
             std::string body = cntl->request_attachment().to_string();
             LOG(WARNING) << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
-            ad_ao->costPerAction(req, resp);
+            ad_ao->costPerVisit(req, resp);
+
+            // 返回
+            std::string respData = common::pb2json(resp);
+
+            // 返回前端
+            cntl->http_response()
+                .set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
+        }
+
+        void CostPerShop(google::protobuf::RpcController *cntl_base,
+                         const HttpRequest *,
+                         HttpResponse *,
+                         google::protobuf::Closure *done)
+        {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            ad_proto::CostPerShopReq req;
+            ad_proto::CostPerShopResp resp;
+
+            std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
+            common::json2pb(body, req);
+
+            // 逻辑处理入口
+            ad_ao->costPerShop(req, resp);
+
+            // 返回
+            std::string respData = common::pb2json(resp);
+
+            // 返回前端
+            cntl->http_response()
+                .set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
+        }
+        void CostPerTime(google::protobuf::RpcController *cntl_base,
+                         const HttpRequest *,
+                         HttpResponse *,
+                         google::protobuf::Closure *done)
+        {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            ad_proto::CostPerTimeReq req;
+            ad_proto::CostPerTimeResp resp;
+
+            std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
+            common::json2pb(body, req);
+
+            // 逻辑处理入口
+            ad_ao->costPerTime(req, resp);
+
+            // 返回
+            std::string respData = common::pb2json(resp);
+
+            // 返回前端
+            cntl->http_response()
+                .set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
+        }
+
+        void CostPerSell(google::protobuf::RpcController *cntl_base,
+                         const HttpRequest *,
+                         HttpResponse *,
+                         google::protobuf::Closure *done)
+        {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            ad_proto::CostPerSellReq req;
+            ad_proto::CostPerSellResp resp;
+
+            std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << body;
+            common::json2pb(body, req);
+
+            // 逻辑处理入口
+            ad_ao->costPerSell(req, resp);
 
             // 返回
             std::string respData = common::pb2json(resp);
@@ -443,11 +535,17 @@ int main(int argc, char *argv[])
                           brpc::SERVER_DOESNT_OWN_SERVICE,
                           "/ad/CostPerClick => CostPerClick,"
                           "/ad/CostPerMille => CostPerMille,"
-                          "/ad/CostPerAction => CostPerAction,"
+                          "/ad/CostPerVisit => CostPerVisit,"
+                          "/ad/CostPerShop => CostPerShop,"
+                          "/ad/CostPerTime => CostPerTime,"
+                          "/ad/CostPerSell => CostPerSell,"
+                          "/ad/PutAdvertise => PutAdvertise,"
                           "/ad/GetAdInfo => GetAdInfo,"
+
                           "/money/GetFundInfo => GetFundInfo,"
                           "/money/Recharge => Recharge,"
                           "/money/Deduction => Deduction,"
+
                           "/login/Register => Register,"
                           "/login/Login => Login,") != 0)
     {

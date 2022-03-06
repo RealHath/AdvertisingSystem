@@ -18,11 +18,14 @@ namespace ad_namespace
     public:
         Ad(/* args */);
         ~Ad();
-        int costPerClick(ad_proto::CostPerClickReq &req, ad_proto::CostPerClickResp &resp);    //获得所有信息
-        int costPerMille(ad_proto::CostPerMilleReq &req, ad_proto::CostPerMilleResp &resp);    //充值
-        int costPerAction(ad_proto::CostPerActionReq &req, ad_proto::CostPerActionResp &resp); //扣费
-        int putAdvertise(ad_proto::PutAdvertiseReq &req, ad_proto::PutAdvertiseResp &resp);    //广告投放
-        int getAdInfo(ad_proto::GetAdInfoReq &req, ad_proto::GetAdInfoResp &resp);             // 获取广告信息
+        int costPerClick(ad_proto::CostPerClickReq &req, ad_proto::CostPerClickResp &resp); //获得所有信息
+        int costPerMille(ad_proto::CostPerMilleReq &req, ad_proto::CostPerMilleResp &resp); //充值
+        int costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp &resp); //扣费
+        int costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &resp);    //扣费
+        int costPerTime(ad_proto::CostPerTimeReq &req, ad_proto::CostPerTimeResp &resp);    //扣费
+        int costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &resp);    //扣费
+        int putAdvertise(ad_proto::PutAdvertiseReq &req, ad_proto::PutAdvertiseResp &resp); //广告投放
+        int getAdInfo(ad_proto::GetAdInfoReq &req, ad_proto::GetAdInfoResp &resp);          // 获取广告信息
 
     public:
         int login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp);        //登录逻辑
@@ -34,13 +37,20 @@ namespace ad_namespace
         int deduction(ad_proto::DeductionReq &req, ad_proto::DeductionResp &resp);       //扣费
 
     private:
-        void invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response);
-        void reflectUser(std::unordered_map<string, string> &data);
+        // void invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response);
+        // void reflectUser(std::unordered_map<string, string> &data);
         std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
-        std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
+        // std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
         std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
         bool initUser(string uuid); // 将用户数据加载到内存
+        uint32_t generateAdId();    // 生成广告id
     };
 }
+
+typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;
+typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
+typedef std::unordered_map<uint32_t, ad_ptr> ad_list;
+static std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
+static std::unordered_map<std::string, ad_list> g_adMap;    // 用户广告映射表
 
 #endif

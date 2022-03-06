@@ -9,11 +9,13 @@ option cc_generic_services = true;
 // 广告信息
 message AdInfo {
     optional uint64 id = 1;
-    optional double account = 2;      // 剩余金额
-    optional string content = 3;
+    optional string imageUrl = 2;      // 图片链接
+    optional string url = 3;            // 连接
+    optional string content = 4;
+    optional uint32 type = 5;       // 投放类型
 }
 message GetAdInfoReq {
-    optional string uuid = 1;
+    optional uint32 type = 1;   // 广告类型
 }
 message GetAdInfoResp {
     optional uint32 err = 1;
@@ -23,8 +25,7 @@ message GetAdInfoResp {
 
 // CPC单次点击
 message CostPerClickReq {
-    optional string uuid = 1;
-    optional uint64 id = 2;
+    optional uint64 id = 1;
 }
 message CostPerClickResp {
     optional uint32 err = 1;
@@ -33,24 +34,49 @@ message CostPerClickResp {
 
 // CPM千次曝光广告
 message CostPerMilleReq {
-    optional string uuid = 1;
-    optional uint64 id = 2;
+    optional uint64 id = 1;
 }
 message CostPerMilleResp {
     optional uint32 err = 1;
     optional string msg = 2;
-    optional uint64 id = 3;
 }
 
-// CPA行动收费
-message CostPerActionReq {
-    optional string uuid = 1;
-    optional uint64 id = 2;
+// CPA行动收费,浏览15s
+message CostPerVisitReq {
+    optional uint64 id = 1;
 }
-message CostPerActionResp {
+message CostPerVisitResp {
     optional uint32 err = 1;
     optional string msg = 2;
-    optional uint64 id = 3;
+}
+
+// CPA，加入购物车收费
+message CostPerShopReq {
+    optional uint64 id = 1;
+}
+message CostPerShopResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
+}
+
+// CPT,按时间收费
+message CostPerTimeReq {
+    optional uint64 id = 1;
+}
+
+message CostPerTimeResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
+}
+
+// CPS,按销售收费
+message CostPerSellReq {
+    optional uint64 id = 1;
+}
+
+message CostPerSellResp {
+    optional uint32 err = 1;
+    optional string msg = 2;
 }
 
 // 广告投放
@@ -59,6 +85,7 @@ message PutAdvertiseReq {
     optional string imageUrl = 2;   // 图片url
     optional string url = 3;        // url
     optional string content = 4;    // 内容描述
+    optional uint32 type = 5;       // 投放类型
 }
 message PutAdvertiseResp {
     optional uint32 err = 1;
@@ -143,7 +170,10 @@ message HttpResponse {
 service HttpService {
     rpc CostPerClick (HttpRequest) returns (HttpResponse);   // CPC单次点击
     rpc CostPerMille (HttpRequest) returns (HttpResponse);   // CPM千次曝光广告
-    rpc CostPerAction (HttpRequest) returns (HttpResponse);   // CPA行动收费
+    rpc CostPerVisit (HttpRequest) returns (HttpResponse);   // CPA行动收费，浏览15s
+    rpc CostPerShop (HttpRequest) returns (HttpResponse);   // CPA行动收费,加购
+    rpc CostPerTime (HttpRequest) returns (HttpResponse);   // CPT时间收费
+    rpc CostPerSell (HttpRequest) returns (HttpResponse);   // CPS销售收费
     rpc PutAdvertise (HttpRequest) returns (HttpResponse);   // 广告投放
     rpc GetAdInfo (HttpRequest) returns (HttpResponse);   // 广告投放
 

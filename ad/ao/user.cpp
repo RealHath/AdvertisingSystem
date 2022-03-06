@@ -60,10 +60,24 @@ namespace ad_namespace
     Advertise::Advertise()
     {
     }
-    Advertise::Advertise(uint64_t id, double cost, string content)
-        : id(id), cost(cost), content(content)
+    Advertise::Advertise(uint32_t id, string uuid, string imageUrl, string url, string content, uint32_t type)
+        : id(id), uuid(uuid), imageUrl(imageUrl), url(url), content(content), type(type)
     {
         this->lDt = time(NULL);
     }
     Advertise::~Advertise() {}
+
+    void Advertise::insertAd()
+    {
+        auto conn = MyDB::getInstance()->getConnection();
+        mysqlpp::Transaction
+            tran(*conn, Transaction::IsolationLevel::repeatable_read,
+                 Transaction::IsolationScope::session);
+        char buf[2048];
+        sprintf(buf, "INSERT INTO ad(id,uuid,type,imageUrl,url,content,updateTime) VALUES(%u,'%s',%u,'%s','%s','%s',%lu);",
+                id, uuid.c_str(), type, imageUrl.c_str(), url.c_str(), content.c_str(), time(NULL));
+        string sql = string(buf);
+        MyDB::getInstance()->execute(sql);
+        tran.commit();
+    }
 }

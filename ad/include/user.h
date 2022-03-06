@@ -13,18 +13,22 @@ namespace ad_namespace
     class Advertise
     {
     public:
-        uint64_t id;
+        uint32_t id;
+        string uuid;
+        uint32_t type;
         string url;
         string imageUrl;
         string content;
-        double cost;  // 实时消耗
         uint64_t lDt; //最后更新时间
 
     public:
         Advertise(/* args */);
-        Advertise(uint64_t id, double cost, string content);
+        Advertise(uint32_t id, string uuid, string imageUrl, string url, string content, uint32_t type);
         ~Advertise();
         // typedef std::shared_ptr<Advertise> ad_ptr;
+
+    public:
+        void insertAd();
     };
 
     // 用户类，缓存
