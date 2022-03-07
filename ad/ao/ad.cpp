@@ -59,7 +59,6 @@ namespace ad_namespace
             user = getUser(ad->uuid);
         }
 
-        cout << "user->amount: " << user->amount;
         user->amount -= CLICK_COST;
         user->updateMoney(CLICK_COST * -1);
         ad->updateCost();

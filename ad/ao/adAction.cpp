@@ -32,22 +32,80 @@ extern bool initUser(string uuid); // 将用户数据加载到内存
 int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp &resp)
 {
     // 1. 处理入参
-    uint64_t id = req.id();
+    uint32_t id = req.id();
+    auto ad = getAdvertise(id);
+    if (ad == nullptr)
+    {
+        resp.set_err(errorEnum::NO_AD);
+        resp.set_msg("没有此广告");
+        return 0;
+    }
+
+    auto user = getUser(ad->uuid);
+    if (user == nullptr)
+    {
+        initUser(ad->uuid);
+        user = getUser(ad->uuid);
+    }
+
+    user->amount -= VISIT_COST;
+    user->updateMoney(VISIT_COST * -1);
+    ad->updateCost();
 
     resp.set_err(errorEnum::SUCCESS);
-    resp.set_msg("CPA");
+    resp.set_msg("CPA_VISIT");
     return 0;
 }
 int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &resp)
 {
+    // 1. 处理入参
+    uint32_t id = req.id();
+    auto ad = getAdvertise(id);
+    if (ad == nullptr)
+    {
+        resp.set_err(errorEnum::NO_AD);
+        resp.set_msg("没有此广告");
+        return 0;
+    }
+
+    auto user = getUser(ad->uuid);
+    if (user == nullptr)
+    {
+        initUser(ad->uuid);
+        user = getUser(ad->uuid);
+    }
+
+    user->amount -= SHOP_COST;
+    user->updateMoney(SHOP_COST * -1);
+    ad->updateCost();
 
     resp.set_err(errorEnum::SUCCESS);
-    resp.set_msg("CPA");
+    resp.set_msg("CPA_SHOP");
     return 0;
 }
 
 int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &resp)
 {
+    // 1. 处理入参
+    uint32_t id = req.id();
+    auto ad = getAdvertise(id);
+    if (ad == nullptr)
+    {
+        resp.set_err(errorEnum::NO_AD);
+        resp.set_msg("没有此广告");
+        return 0;
+    }
+
+    auto user = getUser(ad->uuid);
+    if (user == nullptr)
+    {
+        initUser(ad->uuid);
+        user = getUser(ad->uuid);
+    }
+
+    user->amount -= SELL_COST;
+    user->updateMoney(SELL_COST * -1);
+    ad->updateCost();
 
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("CPS");
@@ -55,6 +113,26 @@ int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &re
 }
 int Ad::costPerTime(ad_proto::CostPerTimeReq &req, ad_proto::CostPerTimeResp &resp)
 {
+    // 1. 处理入参
+    uint32_t id = req.id();
+    auto ad = getAdvertise(id);
+    if (ad == nullptr)
+    {
+        resp.set_err(errorEnum::NO_AD);
+        resp.set_msg("没有此广告");
+        return 0;
+    }
+
+    auto user = getUser(ad->uuid);
+    if (user == nullptr)
+    {
+        initUser(ad->uuid);
+        user = getUser(ad->uuid);
+    }
+
+    user->amount -= TIME_COST;
+    user->updateMoney(TIME_COST * -1);
+    ad->updateCost();
 
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("CPT");
