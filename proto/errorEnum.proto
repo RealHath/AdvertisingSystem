@@ -20,7 +20,7 @@ enum ADType {
     CLICK = 0;
     MILLE = 1;
     VISIT = 2;
-    BUY = 3;
+    SHOP = 3;
     TIME= 4;
     SELL = 5;
 }

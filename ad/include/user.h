@@ -29,6 +29,7 @@ namespace ad_namespace
 
     public:
         void insertAd();
+        void updateCost();
     };
 
     // 用户类，缓存
@@ -54,7 +55,7 @@ namespace ad_namespace
 
     public:
         string getUuid();
-        void updateMoney();
+        void updateMoney(double increment);
         void insertUser();
     };
 }

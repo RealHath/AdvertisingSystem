@@ -19,8 +19,7 @@ public:
 public:
 	//连接数据库
 	bool connect(string host, int port, string user, string passwd, string database);
-	tuple<int, vector<vector<string>>> execSQL(string sql);
-	vector<std::unordered_map<string, string>> execute(string sql);
+	vector<std::unordered_map<string, string>> execSQL(string sql);
 	mysqlpp::Connection *getConnection();
 
 private:

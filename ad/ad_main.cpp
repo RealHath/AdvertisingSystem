@@ -495,12 +495,7 @@ void pingMysql(void *)
     {
         std::this_thread::sleep_for(std::chrono::hours(6));
         // std::this_thread::sleep_for(std::chrono::seconds(7));
-        // auto ret = MyDB::getInstance()->execSQL("PING");
-        MyDB::getInstance()->execute("PING");
-        // if (std::get<0>(ret) != errorEnum::SUCCESS)
-        // {
-        //     LOG(ERROR) << "mysql ping err!!!!";
-        // }
+        MyDB::getInstance()->execSQL("PING");
     }
 }
 

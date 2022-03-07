@@ -74,7 +74,7 @@ int Ad::recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp)
     }
     user = getUser(uuid);
     user->amount += money;
-    user->updateMoney();
+    user->updateMoney(money);
 
     double amount = user->amount;
     double welfare = user->welfare;
@@ -108,7 +108,7 @@ int Ad::deduction(ad_proto::DeductionReq &req, ad_proto::DeductionResp &resp)
     }
     user = getUser(uuid);
     user->amount -= money;
-    user->updateMoney();
+    user->updateMoney(money * -1);
 
     double amount = user->amount;
     double welfare = user->welfare;

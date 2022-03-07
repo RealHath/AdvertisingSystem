@@ -20,7 +20,7 @@ using namespace ad_namespace;
 // typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
 // typedef std::unordered_map<uint64_t, ad_ptr> ad_list;
 // extern std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
-// extern std::unordered_map<std::string, ad_list> g_adMap;    // 用户广告映射表
+// extern std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
 
 extern std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
 extern std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
@@ -39,7 +39,7 @@ int Ad::login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp)
     string sql(s);
 
     // 先查库有没有数据
-    auto ret = MyDB::getInstance()->execute(sql);
+    auto ret = MyDB::getInstance()->execSQL(sql);
 
     if (ret.size() <= 0)
     {
@@ -74,7 +74,7 @@ int Ad::regist(ad_proto::RegisterReq &req, ad_proto::RegisterResp &resp)
     string sql(s);
 
     // 先查库有没有数据
-    auto ret = MyDB::getInstance()->execute(sql);
+    auto ret = MyDB::getInstance()->execSQL(sql);
 
     string uuid;
 
@@ -88,7 +88,7 @@ int Ad::regist(ad_proto::RegisterReq &req, ad_proto::RegisterResp &resp)
         ADUser user(uuid, username, password, phone, 0.0, 0.0);
         user.insertUser();
         g_userMap[uuid] = make_shared<ADUser>(user);
-        g_adMap[uuid] = {};
+        g_AUMap[uuid] = {};
     }
     else
     {

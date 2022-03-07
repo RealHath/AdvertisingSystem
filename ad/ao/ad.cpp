@@ -12,6 +12,7 @@
 #include "common.h"
 #include "mysql.pb.h"
 #include "user.h"
+#include "const.h"
 
 using namespace std;
 using namespace ad_namespace;
@@ -29,7 +30,7 @@ DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 // typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
 // typedef std::unordered_map<uint64_t, ad_ptr> ad_list;
 // static std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
-// static std::unordered_map<std::string, ad_list> g_adMap;    // 用户广告映射表
+// static std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
 
 namespace ad_namespace
 {
@@ -42,37 +43,26 @@ namespace ad_namespace
     int Ad::costPerClick(ad_proto::CostPerClickReq &req, ad_proto::CostPerClickResp &resp)
     {
         // 1. 处理入参
-        uint64_t id = req.id();
-        string userUuid;
-        char s[255];
-        sprintf(s, "SELECT * FROM ad WHERE uuid='%s';",
-                userUuid.c_str());
-        string sql(s);
-
-        // 先查库有没有数据
-        auto ret = MyDB::getInstance()->execute(sql);
-
-        if (ret.size() <= 0)
+        uint32_t id = req.id();
+        auto ad = getAdvertise(id);
+        if (ad == nullptr)
         {
-            // 没有再注册
-            // string uuid = common::genUUID();
             resp.set_err(errorEnum::NO_AD);
             resp.set_msg("没有此广告");
-            return errorEnum::NO_ACCOUNT;
+            return 0;
         }
-        else
-        {
-            double t = 0.5;
 
-            char buf[255];
-            sprintf(buf, "UPDATE money SET amount=%lf WHERE uuid='%s';",
-                    t, userUuid.c_str());
-            sql = string(buf);
-            MyDB::getInstance()->execute(sql);
-            resp.set_err(errorEnum::SUCCESS);
-            resp.set_msg("CPC");
-            return errorEnum::SUCCESS;
+        auto user = getUser(ad->uuid);
+        if (user == nullptr)
+        {
+            initUser(ad->uuid);
+            user = getUser(ad->uuid);
         }
+
+        cout << "user->amount: " << user->amount;
+        user->amount -= CLICK_COST;
+        user->updateMoney(CLICK_COST * -1);
+        ad->updateCost();
 
         resp.set_err(errorEnum::SUCCESS);
         resp.set_msg("CPC");
@@ -81,38 +71,31 @@ namespace ad_namespace
     int Ad::costPerMille(ad_proto::CostPerMilleReq &req, ad_proto::CostPerMilleResp &resp)
     {
 
-        resp.set_err(errorEnum::SUCCESS);
-        resp.set_msg("CPC");
-        return 0;
-    }
-    // int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp &resp)
-    // {
+        uint32_t id = req.id();
+        auto ad = getAdvertise(id);
+        if (ad == nullptr)
+        {
+            resp.set_err(errorEnum::NO_AD);
+            resp.set_msg("没有此广告");
+            return 0;
+        }
 
-    //     resp.set_err(errorEnum::SUCCESS);
-    //     resp.set_msg("CPA");
-    //     return 0;
-    // }
-    // int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &resp)
-    // {
+        auto user = getUser(ad->uuid);
+        if (user == nullptr)
+        {
+            initUser(ad->uuid);
+            user = getUser(ad->uuid);
+        }
 
-    //     resp.set_err(errorEnum::SUCCESS);
-    //     resp.set_msg("CPA");
-    //     return 0;
-    // }
-    int Ad::costPerTime(ad_proto::CostPerTimeReq &req, ad_proto::CostPerTimeResp &resp)
-    {
-
-        resp.set_err(errorEnum::SUCCESS);
-        resp.set_msg("CPT");
-        return 0;
-    }
-    int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &resp)
-    {
+        user->amount -= MILLE_COST;
+        user->updateMoney(MILLE_COST * -1);
+        ad->updateCost();
 
         resp.set_err(errorEnum::SUCCESS);
-        resp.set_msg("CPS");
+        resp.set_msg("CPM");
         return 0;
     }
+
     int Ad::putAdvertise(ad_proto::PutAdvertiseReq &req, ad_proto::PutAdvertiseResp &resp)
     {
         // 1. 处理入参
@@ -136,8 +119,10 @@ namespace ad_namespace
         ad_ptr ptr = make_shared<Advertise>(ad);
         ptr->insertAd();
 
-        auto list = g_adMap[uuid];
+        auto list = g_AUMap[uuid];
         list[id] = ptr;
+        g_typeMap[type].push_back(ptr);
+        g_adMap[id] = ptr;
 
         ::ad_proto::AdInfo *info = resp.mutable_info();
         info->set_id(id);
@@ -158,14 +143,14 @@ namespace ad_namespace
         // 1. 处理入参
         uint32_t type = req.type();
 
-        if (g_adMap.empty() || g_typeMap.empty())
+        if (g_AUMap.empty() || g_typeMap.empty())
         {
-            g_adMap.clear();
+            g_AUMap.clear();
             g_typeMap.clear();
 
             char buf[2048];
             sprintf(buf, "SELECT * FROM ad WHERE type=%u;", type);
-            auto ret = MyDB::getInstance()->execute(string(buf));
+            auto ret = MyDB::getInstance()->execSQL(string(buf));
             for (size_t i = 0; i < ret.size(); i++)
             {
                 auto m = ret[0];
@@ -177,8 +162,9 @@ namespace ad_namespace
 
                 Advertise ad(id, uuid, imageUrl, url, content, type);
                 auto ptr = make_shared<Advertise>(ad);
-                g_adMap[uuid].insert(make_pair(id, ptr));
+                g_AUMap[uuid].insert(make_pair(id, ptr));
                 g_typeMap[type].push_back(ptr);
+                g_adMap[id] = ptr;
             }
             LOG(INFO) << "g_typeMap.size(): " << g_typeMap.size();
         }
@@ -213,203 +199,6 @@ namespace ad_namespace
         return 0;
     }
 
-    //----------------------------------------------------------
-    // int Ad::login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp)
-    // {
-    //     // 1. 处理入参
-    //     string username = req.username();
-    //     string password = req.password();
-    //     char s[255];
-    //     sprintf(s, "SELECT * FROM user WHERE username='%s' and password='%s';",
-    //             username.c_str(), password.c_str());
-    //     string sql(s);
-
-    //     // 先查库有没有数据
-    //     auto ret = MyDB::getInstance()->execute(sql);
-
-    //     if (ret.size() <= 0)
-    //     {
-    //         resp.set_err(errorEnum::NO_ACCOUNT);
-    //         resp.set_msg("没有此账号或密码错误");
-    //         return errorEnum::NO_ACCOUNT;
-    //     }
-    //     else
-    //     {
-    //         string uuid = ret[0]["uuid"];
-    //         if (getUser(uuid) == nullptr)
-    //         {
-    //             initUser(uuid);
-    //         }
-
-    //         resp.set_err(errorEnum::SUCCESS);
-    //         resp.set_msg("登陆成功");
-    //         resp.set_uuid(uuid);
-    //         return errorEnum::SUCCESS;
-    //     }
-    //     return 0;
-    // }
-    // int Ad::regist(ad_proto::RegisterReq &req, ad_proto::RegisterResp &resp)
-    // {
-    //     // 1. 处理入参
-    //     string username = req.username();
-    //     string password = req.password();
-    //     uint64_t phone = req.phone();
-    //     char s[255];
-    //     sprintf(s, "SELECT * FROM user WHERE username='%s' and password='%s';",
-    //             username.c_str(), password.c_str());
-    //     string sql(s);
-
-    //     // 先查库有没有数据
-    //     auto ret = MyDB::getInstance()->execute(sql);
-
-    //     string uuid;
-
-    //     if (ret.size() <= 0)
-    //     {
-    //         // 没有再注册
-    //         uuid = common::genUUID();
-    //         resp.set_err(errorEnum::SUCCESS);
-    //         resp.set_msg("注册成功");
-
-    //         ADUser user(uuid, username, password, phone, 0.0, 0.0);
-    //         user.insertUser();
-    //         g_userMap[uuid] = make_shared<ADUser>(user);
-    //         g_adMap[uuid] = {};
-    //     }
-    //     else
-    //     {
-    //         uuid = ret[0]["uuid"];
-    //         if (getUser(uuid) == nullptr)
-    //         {
-    //             initUser(uuid);
-    //         }
-    //         resp.set_err(errorEnum::HASBEEN_REGISTER);
-    //         resp.set_msg("已注册");
-    //     }
-    //     resp.set_uuid(uuid);
-    //     return 0;
-    // }
-
-    // /////////---------------------------------------------------
-    // int Ad::getFundInfo(ad_proto::GetFundInfoReq &req, ad_proto::GetFundInfoResp &resp)
-    // {
-    //     // 1. 处理入参
-    //     string uuid = req.uuid();
-    //     auto user = getUser(uuid);
-
-    //     // 如果内存没有
-    //     if (user == nullptr)
-    //     {
-    //         // 初始化
-    //         bool flag = initUser(uuid);
-    //         if (!flag)
-    //         {
-    //             // 如果数据库没有
-    //             resp.set_err(errorEnum::NO_ACCOUNT);
-    //             resp.set_msg("没有此账号");
-    //             return 0;
-    //         }
-    //     }
-    //     user = getUser(uuid);
-    //     double amount = user->amount;
-    //     double welfare = user->welfare;
-    //     resp.set_err(errorEnum::SUCCESS);
-    //     resp.set_msg("查找成功");
-    //     resp.set_uuid(uuid);
-    //     resp.set_amount(amount);
-    //     resp.set_welfare(welfare);
-    //     return 0;
-    // }
-    // int Ad::recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp)
-    // {
-    //     // 1. 处理入参
-    //     string uuid = req.uuid();
-    //     double money = req.money();
-
-    //     auto user = getUser(uuid);
-
-    //     // 如果内存没有
-    //     if (user == nullptr)
-    //     {
-    //         // 初始化
-    //         bool flag = initUser(uuid);
-    //         if (!flag)
-    //         {
-    //             // 如果数据库没有
-    //             resp.set_err(errorEnum::NO_ACCOUNT);
-    //             resp.set_msg("没有此账号");
-    //             return 0;
-    //         }
-    //     }
-    //     user = getUser(uuid);
-    //     user->amount += money;
-    //     user->updateMoney();
-
-    //     double amount = user->amount;
-    //     double welfare = user->welfare;
-    //     resp.set_err(errorEnum::SUCCESS);
-    //     resp.set_msg("充值成功");
-    //     resp.set_uuid(uuid);
-    //     resp.set_amount(amount);
-    //     resp.set_welfare(welfare);
-    //     return 0;
-    // }
-    // int Ad::deduction(ad_proto::DeductionReq &req, ad_proto::DeductionResp &resp)
-    // {
-    //     // 1. 处理入参
-    //     string uuid = req.uuid();
-    //     double money = req.money();
-
-    //     auto user = getUser(uuid);
-
-    //     // 如果内存没有
-    //     if (user == nullptr)
-    //     {
-    //         // 初始化
-    //         bool flag = initUser(uuid);
-    //         if (!flag)
-    //         {
-    //             // 如果数据库没有
-    //             resp.set_err(errorEnum::NO_ACCOUNT);
-    //             resp.set_msg("没有此账号");
-    //             return 0;
-    //         }
-    //     }
-    //     user = getUser(uuid);
-    //     user->amount -= money;
-    //     user->updateMoney();
-
-    //     double amount = user->amount;
-    //     double welfare = user->welfare;
-    //     resp.set_err(errorEnum::SUCCESS);
-    //     resp.set_msg("扣费成功");
-    //     resp.set_uuid(uuid);
-    //     resp.set_amount(amount);
-    //     resp.set_welfare(welfare);
-    //     return 0;
-    // }
-
-    // 用户添加到表
-    // void Ad::reflectUser(std::unordered_map<string, string> &data)
-    // {
-    //     if (g_userMap.find(data["uuid"]) != g_userMap.end())
-    //     {
-    //         return;
-    //     }
-
-    //     string uuid = data["uuid"];
-    //     string username = data["username"];
-    //     string password = data["password"];
-    //     uint64_t phone = strtoul(data["phone"].c_str(), nullptr, 0);
-    //     double amount = strtod(data["amount"].c_str(), nullptr);
-    //     double welfare = strtod(data["welfare"].c_str(), nullptr);
-
-    //     ADUser user(uuid, username, password, phone, amount, welfare);
-    //     user_ptr ptr = make_shared<ADUser>(user);
-    //     g_userMap[uuid] = ptr;
-    //     LOG(INFO) << "数据：" << uuid << username << password << phone << amount << welfare;
-    //     LOG(INFO) << "g_userMap.size(): " << g_userMap.size();
-    // }
     //获得用户
     user_ptr Ad::getUser(string uuid)
     {
@@ -422,20 +211,39 @@ namespace ad_namespace
     }
 
     // 用户uuid，广告id
-    std::shared_ptr<ad_namespace::Advertise> Ad::getAdvertise(string uuid, uint64_t id)
+    std::shared_ptr<ad_namespace::Advertise> Ad::getAdvertise(uint32_t id)
     {
-        auto user = getUser(uuid);
-        if (user == nullptr)
+        if (g_adMap.find(id) != g_adMap.end())
         {
-            return nullptr;
+            return g_adMap[id];
         }
-        auto adlist = g_adMap[uuid];
-        return adlist[id];
+
+        char buf[2048];
+        sprintf(buf, "SELECT * FROM ad WHERE id=%u;", id);
+        auto ret = MyDB::getInstance()->execSQL(string(buf));
+        if (ret.size())
+        {
+            auto m = ret[0];
+            uint32_t id = strtoul(m["id"].c_str(), nullptr, 0);
+            string uuid = m["uuid"];
+            string url = m["url"];
+            string imageUrl = m["imageUrl"];
+            string content = m["content"];
+            uint32_t type = strtoul(m["type"].c_str(), nullptr, 0);
+
+            Advertise ad(id, uuid, imageUrl, url, content, type);
+            auto ptr = make_shared<Advertise>(ad);
+            g_adMap[id] = ptr;
+            return g_adMap[id];
+        }
+
+        return nullptr;
     }
+
     // 将用户数据加载到内存
     bool Ad::initUser(string uuid)
     {
-        if (g_adMap.find(uuid) != g_adMap.end() &&
+        if (g_AUMap.find(uuid) != g_AUMap.end() &&
             g_userMap.find(uuid) != g_userMap.end())
         {
             return true;
@@ -452,7 +260,7 @@ namespace ad_namespace
         memset(buf, 0, 2048);
         sprintf(buf, "SELECT * FROM user WHERE uuid='%s';", uuid.c_str());
         string sql(buf);
-        auto ret1 = MyDB::getInstance()->execute(sql);
+        auto ret1 = MyDB::getInstance()->execSQL(sql);
         if (ret1.size())
         {
             username = ret1[0]["username"];
@@ -467,7 +275,7 @@ namespace ad_namespace
         memset(buf, 0, 2048);
         sprintf(buf, "SELECT * FROM money WHERE uuid='%s';", uuid.c_str());
         sql = string(buf);
-        ret1 = MyDB::getInstance()->execute(sql);
+        ret1 = MyDB::getInstance()->execSQL(sql);
         if (ret1.size())
         {
             amount = strtod(ret1[0]["amount"].c_str(), nullptr);
@@ -483,7 +291,8 @@ namespace ad_namespace
         ADUser user(uuid, username, password, phone, amount, welfare);
         user_ptr ptr = make_shared<ADUser>(user);
         g_userMap[uuid] = ptr;
-        g_adMap[uuid] = list;
+        g_AUMap[uuid] = list;
+        // g_adMap[id] = ptr;
 
         LOG(INFO) << "数据："
                   << " uuid:" << uuid << " username:" << username
@@ -498,7 +307,7 @@ namespace ad_namespace
     {
         char buf[2048];
         sprintf(buf, "SELECT COUNT(id) FROM ad WHERE 1=1;");
-        auto ret = MyDB::getInstance()->execute(string(buf));
+        auto ret = MyDB::getInstance()->execSQL(string(buf));
 
         uint32_t id = strtoul(ret[0]["count(id)"].c_str(), nullptr, 0);
         LOG(INFO) << "COUNT(id): " << id;

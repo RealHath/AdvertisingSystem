@@ -41,7 +41,7 @@ namespace ad_namespace
         // void reflectUser(std::unordered_map<string, string> &data);
         std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
         // std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
-        std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
+        std::shared_ptr<ad_namespace::Advertise> getAdvertise(uint32_t id);
         bool initUser(string uuid); // 将用户数据加载到内存
         uint32_t generateAdId();    // 生成广告id
         // void init();
@@ -51,8 +51,10 @@ namespace ad_namespace
 typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;
 typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
 typedef std::unordered_map<uint32_t, ad_ptr> ad_list;
+
 static std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
-static std::unordered_map<std::string, ad_list> g_adMap;       // 用户广告映射表
+static std::unordered_map<uint32_t, ad_ptr> g_adMap;           // 用户广告映射表
+static std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
 static std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
 
 #endif

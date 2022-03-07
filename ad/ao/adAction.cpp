@@ -13,6 +13,7 @@
 #include "common.h"
 #include "mysql.pb.h"
 #include "user.h"
+#include "const.h"
 
 using namespace std;
 using namespace ad_namespace;
@@ -21,7 +22,7 @@ using namespace ad_namespace;
 // typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
 // typedef std::unordered_map<uint64_t, ad_ptr> ad_list;
 // extern std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
-// extern std::unordered_map<std::string, ad_list> g_adMap;    // 用户广告映射表
+// extern std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
 
 extern std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
 extern std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
@@ -32,7 +33,6 @@ int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp 
 {
     // 1. 处理入参
     uint64_t id = req.id();
-    
 
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("CPA");
@@ -43,5 +43,20 @@ int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &re
 
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("CPA");
+    return 0;
+}
+
+int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &resp)
+{
+
+    resp.set_err(errorEnum::SUCCESS);
+    resp.set_msg("CPS");
+    return 0;
+}
+int Ad::costPerTime(ad_proto::CostPerTimeReq &req, ad_proto::CostPerTimeResp &resp)
+{
+
+    resp.set_err(errorEnum::SUCCESS);
+    resp.set_msg("CPT");
     return 0;
 }
