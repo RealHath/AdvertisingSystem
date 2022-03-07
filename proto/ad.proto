@@ -20,7 +20,7 @@ message GetAdInfoReq {
 message GetAdInfoResp {
     optional uint32 err = 1;
     optional string msg = 2;
-    repeated AdInfo info = 3; 
+    optional AdInfo info = 3; 
 }
 
 // CPC单次点击

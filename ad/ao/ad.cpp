@@ -152,40 +152,64 @@ namespace ad_namespace
         return 0;
     }
 
+    //随机返回一个广告
     int Ad::getAdInfo(ad_proto::GetAdInfoReq &req, ad_proto::GetAdInfoResp &resp)
     {
         // 1. 处理入参
         uint32_t type = req.type();
-        string uuid;
-        char s[255];
-        sprintf(s, "SELECT * FROM ad WHERE uuid='%s';",
-                uuid.c_str());
-        string sql(s);
 
-        // 先查库有没有数据
-        auto ret = MyDB::getInstance()->execute(sql);
-
-        if (ret.size() <= 0)
+        if (g_adMap.empty() || g_typeMap.empty())
         {
-            // 没有再注册
-            // string uuid = common::genUUID();
+            g_adMap.clear();
+            g_typeMap.clear();
+
+            char buf[2048];
+            sprintf(buf, "SELECT * FROM ad WHERE type=%u;", type);
+            auto ret = MyDB::getInstance()->execute(string(buf));
+            for (size_t i = 0; i < ret.size(); i++)
+            {
+                auto m = ret[0];
+                uint32_t id = strtoul(m["id"].c_str(), nullptr, 0);
+                string uuid = m["uuid"];
+                string url = m["url"];
+                string imageUrl = m["imageUrl"];
+                string content = m["content"];
+
+                Advertise ad(id, uuid, imageUrl, url, content, type);
+                auto ptr = make_shared<Advertise>(ad);
+                g_adMap[uuid].insert(make_pair(id, ptr));
+                g_typeMap[type].push_back(ptr);
+            }
+            LOG(INFO) << "g_typeMap.size(): " << g_typeMap.size();
+        }
+        if (g_typeMap[type].size() <= 0)
+        {
             resp.set_err(errorEnum::NO_AD);
-            resp.set_msg("没有此广告");
-            return errorEnum::NO_ACCOUNT;
+            resp.set_msg("没有广告");
+            return 0;
         }
-        else
-        {
-            double t = 0.5;
 
-            char buf[255];
-            sprintf(buf, "UPDATE money SET amount=%lf WHERE uuid='%s';",
-                    t, uuid.c_str());
-            sql = string(buf);
-            MyDB::getInstance()->execute(sql);
-            resp.set_err(errorEnum::SUCCESS);
-            resp.set_msg("CPA");
-            return errorEnum::SUCCESS;
-        }
+        // 随机取出一个广告
+        size_t randVal = rand() % g_typeMap[type].size();
+        auto ad = g_typeMap[type].at(randVal);
+
+        uint32_t id = ad->id;
+        string uuid = ad->uuid;
+        string imageUrl = ad->imageUrl;
+        string url = ad->url;
+        string content = ad->content;
+        // uint32_t type = ad->type;
+
+        ::ad_proto::AdInfo *info = resp.mutable_info();
+        info->set_id(id);
+        info->set_imageurl(imageUrl);
+        info->set_url(url);
+        info->set_content(content);
+        info->set_type(type);
+
+        resp.set_err(errorEnum::SUCCESS);
+        resp.set_msg("获取广告成功");
+
         return 0;
     }
 

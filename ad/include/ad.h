@@ -44,13 +44,15 @@ namespace ad_namespace
         std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
         bool initUser(string uuid); // 将用户数据加载到内存
         uint32_t generateAdId();    // 生成广告id
+        // void init();
     };
 }
 
 typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;
 typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
 typedef std::unordered_map<uint32_t, ad_ptr> ad_list;
-static std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
-static std::unordered_map<std::string, ad_list> g_adMap;    // 用户广告映射表
+static std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
+static std::unordered_map<std::string, ad_list> g_adMap;       // 用户广告映射表
+static std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
 
 #endif
