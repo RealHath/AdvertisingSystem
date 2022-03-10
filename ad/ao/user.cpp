@@ -140,8 +140,8 @@ namespace ad_namespace
             }
             else if (type == errorEnum::ADType::TIME)
             {
-                sprintf(buf, "INSERT INTO adFlow(id,uuid,startTime,endTime) VALUES(%u,'%s',%lu,%lu);",
-                        id, uuid.c_str(), time(NULL), time(NULL) + 3600);
+                sprintf(buf, "INSERT INTO adFlow(id,uuid,time,isEnd) VALUES(%u,'%s',%lu,%u);",
+                        id, uuid.c_str(), 3600, 0);
                 sql = string(buf);
             }
             else
@@ -203,12 +203,12 @@ namespace ad_namespace
                         time(NULL), id, uuid.c_str());
                 sql = string(buf);
             }
-            // else if (type == errorEnum::ADType::TIME)
-            // {
-            //     sprintf(buf, "UPDATE adFlow SET 'click' = 'click'+1 WHERE id=%u AND uuid='%s';",
-            //             id, uuid.c_str());
-            //     sql = string(buf);
-            // }
+            else if (type == errorEnum::ADType::TIME)
+            {
+                sprintf(buf, "UPDATE adFlow SET 'isEnd' = 2 WHERE id=%u AND uuid='%s';",
+                        id, uuid.c_str());
+                sql = string(buf);
+            }
             else
             {
                 sql.clear();
