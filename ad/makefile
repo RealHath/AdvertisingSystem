@@ -30,7 +30,7 @@ TARGET = ad_main
 
 .PHONY:all clean proto
 
-all:proto $(TARGET)
+all: proto $(TARGET)  
 # 链接时候指定库文件目录及库文件名
 $(TARGET):$(PROTOOBJS) $(OBJS)
 	@echo "> link"

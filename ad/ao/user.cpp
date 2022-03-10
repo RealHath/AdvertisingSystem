@@ -140,7 +140,7 @@ namespace ad_namespace
             }
             else if (type == errorEnum::ADType::TIME)
             {
-                sprintf(buf, "INSERT INTO adFlow(id,uuid,time,isEnd) VALUES(%u,'%s',%lu,%u);",
+                sprintf(buf, "INSERT INTO adFlow(id,uuid,time,isEnd) VALUES(%u,'%s',%u,%u);",
                         id, uuid.c_str(), 3600, 0);
                 sql = string(buf);
             }
