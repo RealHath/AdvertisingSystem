@@ -13,6 +13,7 @@ enum ErrorCode {
     NO_ACCOUNT      = 4;   // 没有此账号
     MYSQL_EMPTY     = 5;    //数据库空
     NO_AD           = 6;    // 没有此广告
+    NUMBER_ERROR    = 7;    // 充值金额错误
 }
 
 // 广告类型
@@ -23,4 +24,10 @@ enum ADType {
     SHOP = 3;
     TIME= 4;
     SELL = 5;
+}
+
+// 广告状态
+enum ADStatus {
+    NOT_ADUIT = 0;  //未审核
+    ADUITED = 1;    //已审核
 }

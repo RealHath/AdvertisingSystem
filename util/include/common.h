@@ -15,8 +15,9 @@ namespace common
     // 生成uuid
     std::string genUUID();
 
+    std::string gb2312_to_utf8(std::string const &strGb2312);
+    std::string utf8_to_gb2312(std::string const &strUtf8);
+
 } // namespace common
-
-
 
 #endif

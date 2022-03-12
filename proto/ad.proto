@@ -159,6 +159,21 @@ message DeductionResp {
     optional double welfare = 5;//红包福利
 }
 
+// 获取统计
+message GetCountReq {
+    optional string uuid = 1;
+}
+
+message GetCountResp {
+    optional uint32 err = 1;
+    optional double costs = 2;
+    optional uint64 clickNum = 3;   // 点击
+    optional uint64 showNum = 4;    // 展示
+    optional uint64 sellNum = 5;    // 销售
+    optional uint64 visitNum = 6; // 浏览
+    optional uint64 shopNum = 7;  // 加购
+}
+
 //-----------------------------------------------
 message HttpRequest {
 
@@ -180,6 +195,7 @@ service HttpService {
     rpc GetFundInfo (HttpRequest) returns (HttpResponse);  // 获得所有信息
     rpc Recharge (HttpRequest) returns (HttpResponse);     // 充值
     rpc Deduction (HttpRequest) returns (HttpResponse);     // 扣费
+    rpc GetCount (HttpRequest) returns (HttpResponse);     // 获取统计
 
     rpc Register (HttpRequest) returns (HttpResponse);  // 注册
     rpc Login (HttpRequest) returns (HttpResponse);     // 登录

@@ -4,6 +4,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "errorEnum.pb.h"
+
 using namespace std;
 
 namespace ad_namespace
@@ -20,10 +22,11 @@ namespace ad_namespace
         string imageUrl;
         string content;
         uint64_t lDt; //最后更新时间
+        uint32_t status;
 
     public:
         Advertise(/* args */);
-        Advertise(uint32_t id, string uuid, string imageUrl, string url, string content, uint32_t type);
+        Advertise(uint32_t id, string uuid, string imageUrl, string url, string content, uint32_t type, uint32_t status);
         ~Advertise();
         // typedef std::shared_ptr<Advertise> ad_ptr;
 
@@ -57,6 +60,18 @@ namespace ad_namespace
         string getUuid();
         void updateMoney(double increment);
         void insertUser();
+    };
+
+    // 统计类
+    class Count
+    {
+    public:
+        double costs;
+        uint64_t clickNum; // 点击
+        uint64_t showNum;  // 曝光
+        uint64_t sellNum;  // 销售
+        uint64_t visitNum; // 浏览
+        uint64_t shopNum;  // 加购
     };
 }
 

@@ -35,6 +35,7 @@ namespace ad_namespace
         int getFundInfo(ad_proto::GetFundInfoReq &req, ad_proto::GetFundInfoResp &resp); //获得所有信息
         int recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp);          //充值
         int deduction(ad_proto::DeductionReq &req, ad_proto::DeductionResp &resp);       //扣费
+        int getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp);          // 获取统计
 
     private:
         // void invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response);

@@ -65,7 +65,7 @@ namespace ad_proto
 
             // 请求
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "GetFundInfo: " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -95,7 +95,7 @@ namespace ad_proto
             ad_proto::RechargeResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "Recharge: " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -126,11 +126,42 @@ namespace ad_proto
             ad_proto::DeductionResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "Deduction: " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
             ad_ao->deduction(req, resp);
+
+            // 返回
+            std::string respData = common::pb2json(resp);
+
+            // 返回前端
+            cntl->http_response()
+                .set_content_type("application/json");
+            butil::IOBufBuilder os;
+            os << respData;
+            os.move_to(cntl->response_attachment());
+        }
+
+        void GetCount(google::protobuf::RpcController *cntl_base,
+                      const HttpRequest *,
+                      HttpResponse *,
+                      google::protobuf::Closure *done)
+        {
+            brpc::ClosureGuard done_guard(done);
+
+            brpc::Controller *cntl =
+                static_cast<brpc::Controller *>(cntl_base);
+
+            ad_proto::GetCountReq req;
+            ad_proto::GetCountResp resp;
+
+            std::string body = cntl->request_attachment().to_string();
+            LOG(WARNING) << "GetCount: " << body;
+            common::json2pb(body, req);
+
+            // 逻辑处理入口
+            ad_ao->getCount(req, resp);
 
             // 返回
             std::string respData = common::pb2json(resp);
@@ -159,7 +190,7 @@ namespace ad_proto
 
             // 请求
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "Register: " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -189,7 +220,7 @@ namespace ad_proto
             ad_proto::LoginResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "Login: " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -222,7 +253,7 @@ namespace ad_proto
 
             // 请求
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "CostPerClick: " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -252,7 +283,7 @@ namespace ad_proto
             ad_proto::CostPerMilleResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "CostPerMille " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -283,7 +314,7 @@ namespace ad_proto
             ad_proto::CostPerVisitResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "CostPerVisit " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -314,7 +345,7 @@ namespace ad_proto
             ad_proto::CostPerShopResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "CostPerShop " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -344,7 +375,7 @@ namespace ad_proto
             ad_proto::CostPerTimeResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "CostPerTime " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -375,7 +406,7 @@ namespace ad_proto
             ad_proto::CostPerSellResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "CostPerSell " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -406,7 +437,7 @@ namespace ad_proto
             ad_proto::PutAdvertiseResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "PutAdvertise " << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -437,7 +468,7 @@ namespace ad_proto
             ad_proto::GetAdInfoResp resp;
 
             std::string body = cntl->request_attachment().to_string();
-            LOG(WARNING) << body;
+            LOG(WARNING) << "GetAdInfo" << body;
             common::json2pb(body, req);
 
             // 逻辑处理入口
@@ -495,6 +526,7 @@ void mysqlConfig()
     bool flag = MyDB::getInstance()->connect(FLAGS_url, FLAGS_port, FLAGS_user, FLAGS_password, FLAGS_database);
     if (flag)
     {
+        MyDB::getInstance()->execSQL("SET NAMES UTF8MB4");
         LOG(INFO) << "connect mysql successed!";
     }
     else
@@ -557,6 +589,7 @@ int main(int argc, char *argv[])
                           "/money/GetFundInfo => GetFundInfo,"
                           "/money/Recharge => Recharge,"
                           "/money/Deduction => Deduction,"
+                          "/money/GetCount => GetCount,"
 
                           "/login/Register => Register,"
                           "/login/Login => Login,") != 0)

@@ -4,6 +4,7 @@
 #include <time.h>
 #include <unordered_map>
 #include <memory>
+#include <codecvt>
 
 #include "sql.h"
 #include "errorEnum.pb.h"
@@ -114,7 +115,7 @@ namespace ad_namespace
         }
 
         uint32_t id = generateAdId();
-        Advertise ad(id, uuid, imageUrl, url, content, type);
+        Advertise ad(id, uuid, imageUrl, url, content, type, errorEnum::NOT_ADUIT);
         ad_ptr ptr = make_shared<Advertise>(ad);
         ptr->insertAd();
 
@@ -148,7 +149,7 @@ namespace ad_namespace
             g_typeMap.clear();
 
             char buf[2048];
-            sprintf(buf, "SELECT * FROM ad WHERE type=%u;", type);
+            sprintf(buf, "SELECT * FROM ad WHERE type=%u AND status=%u;", type, errorEnum::ADUITED);
             auto ret = MyDB::getInstance()->execSQL(string(buf));
             for (size_t i = 0; i < ret.size(); i++)
             {
@@ -158,8 +159,9 @@ namespace ad_namespace
                 string url = m["url"];
                 string imageUrl = m["imageUrl"];
                 string content = m["content"];
+                uint32_t status = strtoul(m["status"].c_str(), nullptr, 0);
 
-                Advertise ad(id, uuid, imageUrl, url, content, type);
+                Advertise ad(id, uuid, imageUrl, url, content, type, status);
                 auto ptr = make_shared<Advertise>(ad);
                 g_AUMap[uuid].insert(make_pair(id, ptr));
                 g_typeMap[type].push_back(ptr);
@@ -229,8 +231,9 @@ namespace ad_namespace
             string imageUrl = m["imageUrl"];
             string content = m["content"];
             uint32_t type = strtoul(m["type"].c_str(), nullptr, 0);
+            uint32_t status = strtoul(m["status"].c_str(), nullptr, 0);
 
-            Advertise ad(id, uuid, imageUrl, url, content, type);
+            Advertise ad(id, uuid, imageUrl, url, content, type, status);
             auto ptr = make_shared<Advertise>(ad);
             g_adMap[id] = ptr;
             return g_adMap[id];
@@ -308,7 +311,8 @@ namespace ad_namespace
         sprintf(buf, "SELECT COUNT(id) FROM ad WHERE 1=1;");
         auto ret = MyDB::getInstance()->execSQL(string(buf));
 
-        uint32_t id = strtoul(ret[0]["count(id)"].c_str(), nullptr, 0);
+        uint32_t id = strtoul(ret[0]["COUNT(id)"].c_str(), nullptr, 0);
+
         LOG(INFO) << "COUNT(id): " << id;
         return id + 1;
     }

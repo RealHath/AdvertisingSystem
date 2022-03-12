@@ -57,6 +57,13 @@ int Ad::recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp)
     string uuid = req.uuid();
     double money = req.money();
 
+    if (money <= 0)
+    {
+        resp.set_err(errorEnum::NUMBER_ERROR);
+        resp.set_msg("充值金额错误");
+        return 0;
+    }
+
     auto user = getUser(uuid);
 
     // 如果内存没有
@@ -117,5 +124,13 @@ int Ad::deduction(ad_proto::DeductionReq &req, ad_proto::DeductionResp &resp)
     resp.set_uuid(uuid);
     resp.set_amount(amount);
     resp.set_welfare(welfare);
+    return 0;
+}
+
+int Ad::getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp)
+{
+    // 1. 处理入参
+    string uuid = req.uuid();
+
     return 0;
 }

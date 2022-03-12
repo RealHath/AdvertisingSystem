@@ -15,14 +15,15 @@ MyDB::MyDB(/* args */)
 
 MyDB::~MyDB()
 {
-	if (mysql != nullptr)
-	{
-		mysql_close(mysql);
-	}
-	if (result != nullptr)
-	{
-		mysql_free_result(result);
-	}
+	// if (mysql != nullptr)
+	// {
+	// 	mysql_close(mysql);
+	// }
+	// if (result != nullptr)
+	// {
+	// 	mysql_free_result(result);
+	// }
+	conn->shutdown();
 }
 
 MyDB *MyDB::getInstance()
@@ -40,10 +41,8 @@ bool MyDB::connect(std::string host, int port, std::string user, std::string pas
 		std::cout << "connect database failed!" << std::endl;
 		return false;
 	}
-	else
-	{
-		return true;
-	}
+
+	return true;
 }
 
 vector<std::unordered_map<string, string>> MyDB::execSQL(string sql = "PING")

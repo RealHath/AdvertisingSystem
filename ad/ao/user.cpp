@@ -1,6 +1,5 @@
 #include "user.h"
 #include "sql.h"
-#include "errorEnum.pb.h"
 #include <butil/logging.h>
 
 using namespace mysqlpp;
@@ -85,8 +84,8 @@ namespace ad_namespace
     Advertise::Advertise()
     {
     }
-    Advertise::Advertise(uint32_t id, string uuid, string imageUrl, string url, string content, uint32_t type)
-        : id(id), uuid(uuid), imageUrl(imageUrl), url(url), content(content), type(type)
+    Advertise::Advertise(uint32_t id, string uuid, string imageUrl, string url, string content, uint32_t type, uint32_t status = errorEnum::NOT_ADUIT)
+        : id(id), uuid(uuid), imageUrl(imageUrl), url(url), content(content), type(type), status(status)
     {
         this->lDt = time(NULL);
     }
@@ -102,8 +101,8 @@ namespace ad_namespace
         try
         {
             char buf[2048];
-            sprintf(buf, "INSERT INTO ad(id,uuid,type,imageUrl,url,content,updateTime) VALUES(%u,'%s',%u,'%s','%s','%s',%lu);",
-                    id, uuid.c_str(), type, imageUrl.c_str(), url.c_str(), content.c_str(), time(NULL));
+            sprintf(buf, "INSERT INTO ad(id,uuid,type,imageUrl,url,content,updateTime,status) VALUES(%u,'%s',%u,'%s','%s','%s',%lu,%u);",
+                    id, uuid.c_str(), type, imageUrl.c_str(), url.c_str(), content.c_str(), time(NULL), errorEnum::NOT_ADUIT);
             string sql = string(buf);
             MyDB::getInstance()->execSQL(sql);
 
