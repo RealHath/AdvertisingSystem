@@ -12,6 +12,7 @@ namespace ad_namespace
 {
     class ADUser;
     class Advertise;
+    class ADCount;
     class Ad
     {
     public:
@@ -51,11 +52,13 @@ namespace ad_namespace
 
 typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;
 typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
+typedef std::shared_ptr<ad_namespace::ADCount> count_ptr;
 typedef std::unordered_map<uint32_t, ad_ptr> ad_list;
 
 static std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
 static std::unordered_map<uint32_t, ad_ptr> g_adMap;           // 用户广告映射表
 static std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
 static std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
+static std::unordered_map<std::string, count_ptr> g_countMap;  // 统计表
 
 #endif

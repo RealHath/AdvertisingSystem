@@ -16,11 +16,12 @@ message AdInfo {
 }
 message GetAdInfoReq {
     optional uint32 type = 1;   // 广告类型
+    optional uint32 num = 2;    // 数量
 }
 message GetAdInfoResp {
     optional uint32 err = 1;
     optional string msg = 2;
-    optional AdInfo info = 3; 
+    repeated AdInfo info = 3; 
 }
 
 // CPC单次点击
@@ -166,12 +167,13 @@ message GetCountReq {
 
 message GetCountResp {
     optional uint32 err = 1;
-    optional double costs = 2;
-    optional uint64 clickNum = 3;   // 点击
-    optional uint64 showNum = 4;    // 展示
-    optional uint64 sellNum = 5;    // 销售
-    optional uint64 visitNum = 6; // 浏览
-    optional uint64 shopNum = 7;  // 加购
+    optional string msg = 2;
+    optional double costs = 3;
+    optional uint64 clickNum = 4;   // 点击
+    optional uint64 showNum = 5;    // 展示
+    optional uint64 sellNum = 6;    // 销售
+    optional uint64 visitNum = 7; // 浏览
+    optional uint64 shopNum = 8;  // 加购
 }
 
 //-----------------------------------------------

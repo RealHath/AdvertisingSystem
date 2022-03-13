@@ -63,7 +63,7 @@ namespace ad_namespace
     };
 
     // 统计类
-    class Count
+    class ADCount
     {
     public:
         double costs;
@@ -72,6 +72,11 @@ namespace ad_namespace
         uint64_t sellNum;  // 销售
         uint64_t visitNum; // 浏览
         uint64_t shopNum;  // 加购
+
+    public:
+        ADCount(/* args */);
+        ADCount(double costs, uint64_t clickNum, uint64_t showNum, uint64_t sellNum, uint64_t visitNum, uint64_t shopNum);
+        ~ADCount();
     };
 }
 

@@ -12,6 +12,7 @@
 #include "common.h"
 #include "mysql.pb.h"
 #include "user.h"
+#include "const.h"
 
 using namespace std;
 using namespace ad_namespace;
@@ -131,6 +132,59 @@ int Ad::getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp)
 {
     // 1. 处理入参
     string uuid = req.uuid();
+
+    if (true || g_countMap.find(uuid) == g_countMap.end())
+    {
+        char buf[2048];
+        memset(buf, 0, 2048);
+        sprintf(buf, "SELECT * FROM adFlow WHERE uuid='%s';", uuid.c_str());
+        auto ret1 = MyDB::getInstance()->execSQL(string(buf));
+
+        memset(buf, 0, 2048);
+        sprintf(buf, "SELECT * FROM adAction WHERE uuid='%s';", uuid.c_str());
+        auto ret2 = MyDB::getInstance()->execSQL(string(buf));
+
+        // memset(buf, 0, 2048);
+        // sprintf(buf, "SELECT * FROM adTime WHERE uuid='%s';", uuid.c_str());
+        // auto ret3 = MyDB::getInstance()->execSQL(string(buf));
+
+        uint64_t clickNum = 0;
+        uint64_t showNum = 0;
+        uint64_t sellNum = 0;
+        uint64_t visitNum = 0;
+        uint64_t shopNum = 0;
+        if (ret1.size())
+        {
+            clickNum = strtoull(ret1[0]["click"].c_str(), nullptr, 0);
+            showNum = strtoull(ret1[0]["exposure"].c_str(), nullptr, 0);
+        }
+        if (ret2.size())
+        {
+            sellNum = strtoull(ret2[0]["sell"].c_str(), nullptr, 0);
+            visitNum = strtoull(ret2[0]["visit"].c_str(), nullptr, 0);
+            shopNum = strtoull(ret2[0]["shop"].c_str(), nullptr, 0);
+        }
+
+        double costs = clickNum * CLICK_COST + (showNum / 1000.0) * MILLE_COST +
+                       sellNum * SELL_COST + visitNum * VISIT_COST + shopNum * SHOP_COST;
+
+        LOG(INFO) << clickNum << showNum << sellNum << visitNum << shopNum << costs;
+
+        ADCount c(costs, clickNum, showNum, sellNum, visitNum, shopNum);
+        auto c_ptr = make_shared<ADCount>(c);
+        g_countMap[uuid] = c_ptr;
+    }
+
+    auto count = g_countMap[uuid];
+
+    resp.set_err(0);
+    resp.set_msg("查询成功");
+    resp.set_costs(count->costs);
+    resp.set_clicknum(count->clickNum);
+    resp.set_shownum(count->showNum);
+    resp.set_sellnum(count->sellNum);
+    resp.set_visitnum(count->visitNum);
+    resp.set_shopnum(count->shopNum);
 
     return 0;
 }

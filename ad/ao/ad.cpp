@@ -142,6 +142,7 @@ namespace ad_namespace
     {
         // 1. 处理入参
         uint32_t type = req.type();
+        uint32_t num = req.num();
 
         if (g_AUMap.empty() || g_typeMap.empty())
         {
@@ -149,7 +150,7 @@ namespace ad_namespace
             g_typeMap.clear();
 
             char buf[2048];
-            sprintf(buf, "SELECT * FROM ad WHERE type=%u AND status=%u;", type, errorEnum::ADUITED);
+            sprintf(buf, "SELECT * FROM ad WHERE type=%u OR status=%u;", type, errorEnum::ADUITED);
             auto ret = MyDB::getInstance()->execSQL(string(buf));
             for (size_t i = 0; i < ret.size(); i++)
             {
@@ -177,22 +178,25 @@ namespace ad_namespace
         }
 
         // 随机取出一个广告
-        size_t randVal = rand() % g_typeMap[type].size();
-        auto ad = g_typeMap[type].at(randVal);
+        for (size_t i = 0; i < num; i++)
+        {
+            size_t randVal = rand() % g_typeMap[type].size();
+            auto ad = g_typeMap[type].at(randVal);
 
-        uint32_t id = ad->id;
-        string uuid = ad->uuid;
-        string imageUrl = ad->imageUrl;
-        string url = ad->url;
-        string content = ad->content;
-        // uint32_t type = ad->type;
+            uint32_t id = ad->id;
+            string uuid = ad->uuid;
+            string imageUrl = ad->imageUrl;
+            string url = ad->url;
+            string content = ad->content;
+            // uint32_t type = ad->type;
 
-        ::ad_proto::AdInfo *info = resp.mutable_info();
-        info->set_id(id);
-        info->set_imageurl(imageUrl);
-        info->set_url(url);
-        info->set_content(content);
-        info->set_type(type);
+            ::ad_proto::AdInfo *info = resp.add_info();
+            info->set_id(id);
+            info->set_imageurl(imageUrl);
+            info->set_url(url);
+            info->set_content(content);
+            info->set_type(type);
+        }
 
         resp.set_err(errorEnum::SUCCESS);
         resp.set_msg("获取广告成功");

@@ -226,4 +226,14 @@ namespace ad_namespace
             tran.rollback();
         }
     }
+
+    //-------------------------
+
+    ADCount::ADCount(/* args */) {}
+
+    ADCount::~ADCount() {}
+    ADCount::ADCount(double costs, uint64_t clickNum, uint64_t showNum, uint64_t sellNum, uint64_t visitNum, uint64_t shopNum)
+        : costs(costs), clickNum(clickNum), showNum(showNum), sellNum(sellNum), visitNum(visitNum), shopNum(shopNum)
+    {
+    }
 }
