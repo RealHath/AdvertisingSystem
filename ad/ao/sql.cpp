@@ -57,7 +57,7 @@ vector<std::unordered_map<string, string>> MyDB::syncExecSQL(string sql = "PING"
 		conn->ping();
 		return {};
 	}
-	LOG(INFO) << "SQL: " << sql;
+	LOG(INFO) << "syncExecSQL: " << sql;
 	vector<std::unordered_map<string, string>> res;
 	// sql = "SELECT * FROM user WHERE uuid='94f06243-7feb-443f-b4d9-a7d1f820171e';";
 	auto query = conn->query();
@@ -66,7 +66,7 @@ vector<std::unordered_map<string, string>> MyDB::syncExecSQL(string sql = "PING"
 	// LOG(INFO) << "ares.num_rows() = " << ares.num_rows();
 	for (size_t i = 0; i < ares.num_rows(); i++)
 	{
-		std::cout << "your data" << std::endl;
+		// std::cout << "your data" << std::endl;
 		// std::cout << "name: " << ares[i]["name"] << "\tid: " << ares[i]["id"] << "\tstatus: " << ares[i]["status"] << std::endl;
 
 		std::unordered_map<string, string> tmp;
@@ -75,8 +75,9 @@ vector<std::unordered_map<string, string>> MyDB::syncExecSQL(string sql = "PING"
 		{
 			string field_name = ares.field_name(j);
 			tmp[field_name] = string(ares[i][field_name.c_str()]);
-			cout << field_name.c_str() << ": " << ares[i][field_name.c_str()] << endl;
+			cout << " " << field_name.c_str() << ": " << ares[i][field_name.c_str()];
 		}
+		cout << endl;
 		res.push_back(tmp);
 	}
 
@@ -93,7 +94,7 @@ void MyDB::asyncExecSQL(string sql = "PING")
 		conn->ping();
 		return;
 	}
-	LOG(INFO) << "SQL: " << sql;
+	LOG(INFO) << "asyncExecSQL: " << sql;
 	auto query = conn->query();
 	query << sql;
 	query.execute();

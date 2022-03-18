@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <memory>
 #include <codecvt>
+#include <set>
 
 #include "sql.h"
 #include "errorEnum.pb.h"
@@ -154,7 +155,7 @@ namespace ad_namespace
             auto ret = MyDB::getInstance()->syncExecSQL(string(buf));
             for (size_t i = 0; i < ret.size(); i++)
             {
-                auto m = ret[0];
+                auto m = ret[i];
                 uint32_t id = strtoul(m["id"].c_str(), nullptr, 0);
                 string uuid = m["uuid"];
                 string url = m["url"];
@@ -168,7 +169,7 @@ namespace ad_namespace
                 g_typeMap[type].push_back(ptr);
                 g_adMap[id] = ptr;
             }
-            LOG(INFO) << "g_typeMap.size(): " << g_typeMap.size();
+            LOG(INFO) << "g_typeMap[type].size(): " << g_typeMap[type].size();
         }
         if (g_typeMap[type].size() <= 0)
         {
@@ -178,11 +179,21 @@ namespace ad_namespace
         }
 
         // 随机取出一个广告
+        std::set<size_t> uniqueSet;
+        auto vec = g_typeMap[type];
         for (size_t i = 0; i < num; i++)
         {
-            size_t randVal = rand() % g_typeMap[type].size();
-            auto ad = g_typeMap[type].at(randVal);
+            // size_t randVal = rand() % g_typeMap[type].size();
+            auto randId = generateRandomId(vec, uniqueSet);
+            if (randId == -1)
+            {
+                LOG(ERROR) << "not enough ad object!!!";
+                resp.set_err(errorEnum::NOT_ENOUGH_AD);
+                resp.set_msg("广告数量不足");
+                return 0;
+            }
 
+            auto ad = g_typeMap[type].at(randId);
             uint32_t id = ad->id;
             string uuid = ad->uuid;
             string imageUrl = ad->imageUrl;
@@ -202,6 +213,44 @@ namespace ad_namespace
         resp.set_msg("获取广告成功");
 
         return 0;
+    }
+
+    // 获取广告时非重复
+    int Ad::generateRandomId(vector<shared_ptr<Advertise>> &vec, set<size_t> &s)
+    {
+        long maxValue = 0;
+        for (size_t i = 0; i < vec.size(); i++)
+        {
+            // 1权重
+            if (!s.count(i))
+            {
+                maxValue += 1;
+            }
+        }
+
+        if (maxValue == 0)
+        {
+            LOG(ERROR) << "not enough ad object!!!";
+            return -1;
+        }
+
+        long curValue = 0;
+        long randValue = random() % maxValue + 1;
+        for (size_t i = 0; i < vec.size(); i++)
+        {
+            if (!s.count(i))
+            {
+                curValue += 1;
+                if (curValue >= randValue)
+                {
+                    s.insert(i);
+                    return i;
+                }
+            }
+        }
+
+        LOG(ERROR) << "not enough ad object!!!";
+        return -1;
     }
 
     //获得用户

@@ -47,6 +47,7 @@ namespace ad_namespace
         bool initUser(string uuid); // 将用户数据加载到内存
         uint32_t generateAdId();    // 生成广告id
         // void init();
+        int generateRandomId(vector<shared_ptr<Advertise>> &vec, set<size_t> &s); //不重复随机生成
     };
 }
 

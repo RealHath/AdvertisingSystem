@@ -69,8 +69,8 @@ int Ad::regist(ad_proto::RegisterReq &req, ad_proto::RegisterResp &resp)
     string password = req.password();
     uint64_t phone = req.phone();
     char s[255];
-    sprintf(s, "SELECT * FROM user WHERE username='%s' and password='%s';",
-            username.c_str(), password.c_str());
+    sprintf(s, "SELECT * FROM user WHERE username='%s';",
+            username.c_str());
     string sql(s);
 
     // 先查库有没有数据
