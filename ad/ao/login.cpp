@@ -39,7 +39,7 @@ int Ad::login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp)
     string sql(s);
 
     // 先查库有没有数据
-    auto ret = MyDB::getInstance()->execSQL(sql);
+    auto ret = MyDB::getInstance()->syncExecSQL(sql);
 
     if (ret.size() <= 0)
     {
@@ -74,7 +74,7 @@ int Ad::regist(ad_proto::RegisterReq &req, ad_proto::RegisterResp &resp)
     string sql(s);
 
     // 先查库有没有数据
-    auto ret = MyDB::getInstance()->execSQL(sql);
+    auto ret = MyDB::getInstance()->syncExecSQL(sql);
 
     string uuid;
 

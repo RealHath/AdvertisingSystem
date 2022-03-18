@@ -526,7 +526,7 @@ void mysqlConfig()
     bool flag = MyDB::getInstance()->connect(FLAGS_url, FLAGS_port, FLAGS_user, FLAGS_password, FLAGS_database);
     if (flag)
     {
-        MyDB::getInstance()->execSQL("SET NAMES UTF8MB4");
+        MyDB::getInstance()->asyncExecSQL("SET NAMES UTF8MB4");
         LOG(INFO) << "connect mysql successed!";
     }
     else
@@ -543,7 +543,7 @@ void pingMysql(void *)
     {
         std::this_thread::sleep_for(std::chrono::hours(6));
         // std::this_thread::sleep_for(std::chrono::seconds(7));
-        MyDB::getInstance()->execSQL("PING");
+        MyDB::getInstance()->asyncExecSQL("PING");
     }
 }
 

@@ -137,16 +137,16 @@ int Ad::getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp)
     {
         char buf[2048];
         memset(buf, 0, 2048);
-        sprintf(buf, "SELECT * FROM adFlow WHERE uuid='%s';", uuid.c_str());
-        auto ret1 = MyDB::getInstance()->execSQL(string(buf));
+        sprintf(buf, "SELECT SUM(click), SUM(exposure) FROM adFlow WHERE uuid='%s';", uuid.c_str());
+        auto ret1 = MyDB::getInstance()->syncExecSQL(string(buf));
 
         memset(buf, 0, 2048);
-        sprintf(buf, "SELECT * FROM adAction WHERE uuid='%s';", uuid.c_str());
-        auto ret2 = MyDB::getInstance()->execSQL(string(buf));
+        sprintf(buf, "SELECT SUM(sell), SUM(visit), SUM(shop) FROM adAction WHERE uuid='%s';", uuid.c_str());
+        auto ret2 = MyDB::getInstance()->syncExecSQL(string(buf));
 
         // memset(buf, 0, 2048);
         // sprintf(buf, "SELECT * FROM adTime WHERE uuid='%s';", uuid.c_str());
-        // auto ret3 = MyDB::getInstance()->execSQL(string(buf));
+        // auto ret3 = MyDB::getInstance()->syncExecSQL(string(buf));
 
         uint64_t clickNum = 0;
         uint64_t showNum = 0;
@@ -155,20 +155,20 @@ int Ad::getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp)
         uint64_t shopNum = 0;
         if (ret1.size())
         {
-            clickNum = strtoull(ret1[0]["click"].c_str(), nullptr, 0);
-            showNum = strtoull(ret1[0]["exposure"].c_str(), nullptr, 0);
+            clickNum = strtoull(ret1[0]["SUM(click)"].c_str(), nullptr, 0);
+            showNum = strtoull(ret1[0]["SUM(exposure)"].c_str(), nullptr, 0);
         }
         if (ret2.size())
         {
-            sellNum = strtoull(ret2[0]["sell"].c_str(), nullptr, 0);
-            visitNum = strtoull(ret2[0]["visit"].c_str(), nullptr, 0);
-            shopNum = strtoull(ret2[0]["shop"].c_str(), nullptr, 0);
+            sellNum = strtoull(ret2[0]["SUM(sell)"].c_str(), nullptr, 0);
+            visitNum = strtoull(ret2[0]["SUM(visit)"].c_str(), nullptr, 0);
+            shopNum = strtoull(ret2[0]["SUM(shop)"].c_str(), nullptr, 0);
         }
 
         double costs = clickNum * CLICK_COST + (showNum / 1000.0) * MILLE_COST +
                        sellNum * SELL_COST + visitNum * VISIT_COST + shopNum * SHOP_COST;
 
-        LOG(INFO) << clickNum << showNum << sellNum << visitNum << shopNum << costs;
+        // LOG(INFO) << clickNum << showNum << sellNum << visitNum << shopNum << costs;
 
         ADCount c(costs, clickNum, showNum, sellNum, visitNum, shopNum);
         auto c_ptr = make_shared<ADCount>(c);

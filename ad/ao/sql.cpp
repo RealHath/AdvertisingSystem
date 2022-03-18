@@ -23,7 +23,9 @@ MyDB::~MyDB()
 	// {
 	// 	mysql_free_result(result);
 	// }
-	conn->shutdown();
+	// conn->shutdown();
+	conn->disconnect();
+	delete conn;
 }
 
 MyDB *MyDB::getInstance()
@@ -45,7 +47,8 @@ bool MyDB::connect(std::string host, int port, std::string user, std::string pas
 	return true;
 }
 
-vector<std::unordered_map<string, string>> MyDB::execSQL(string sql = "PING")
+// 用于查询
+vector<std::unordered_map<string, string>> MyDB::syncExecSQL(string sql = "PING")
 {
 	std::lock_guard<std::mutex> g_lock(g_mtx);
 	if (sql == "PING")
@@ -78,6 +81,22 @@ vector<std::unordered_map<string, string>> MyDB::execSQL(string sql = "PING")
 	}
 
 	return res;
+}
+
+// 用于修改
+void MyDB::asyncExecSQL(string sql = "PING")
+{
+	std::lock_guard<std::mutex> g_lock(g_mtx);
+	if (sql == "PING")
+	{
+		LOG(INFO) << "Mysql Ping!!!!!";
+		conn->ping();
+		return;
+	}
+	LOG(INFO) << "SQL: " << sql;
+	auto query = conn->query();
+	query << sql;
+	query.execute();
 }
 
 mysqlpp::Connection *MyDB::getConnection()

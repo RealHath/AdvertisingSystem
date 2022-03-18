@@ -17,12 +17,13 @@ namespace ad_namespace
     public:
         uint32_t id;
         string uuid;
-        uint32_t type;
-        string url;
         string imageUrl;
+        string url;
         string content;
-        uint64_t lDt; //最后更新时间
+        uint32_t type;
         uint32_t status;
+        uint64_t lDt; //最后更新时间
+        
 
     public:
         Advertise(/* args */);

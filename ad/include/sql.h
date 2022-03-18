@@ -19,7 +19,8 @@ public:
 public:
 	//连接数据库
 	bool connect(string host, int port, string user, string passwd, string database);
-	vector<std::unordered_map<string, string>> execSQL(string sql);
+	vector<std::unordered_map<string, string>> syncExecSQL(string sql);		// 同步接口
+	void asyncExecSQL(string sql);		// 异步
 	mysqlpp::Connection *getConnection();
 
 private:

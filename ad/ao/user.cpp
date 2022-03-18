@@ -36,12 +36,12 @@ namespace ad_namespace
             sprintf(buf, "UPDATE money SET amount=%lf, welfare=%lf, updateTime=%lu WHERE uuid='%s';",
                     amount, welfare, time(NULL), uuid.c_str());
             string sql(buf);
-            MyDB::getInstance()->execSQL(sql);
+            MyDB::getInstance()->asyncExecSQL(sql);
 
             memset(buf, 0, 2048);
             sprintf(buf, "INSERT INTO recharge(id,uuid,increment,updateTime) VALUES(null,'%s',%lf,%lu);",
                     uuid.c_str(), increment, time(NULL));
-            MyDB::getInstance()->execSQL(string(buf));
+            MyDB::getInstance()->asyncExecSQL(string(buf));
             tran.commit();
         }
         catch (std::exception &e)
@@ -64,12 +64,12 @@ namespace ad_namespace
             sprintf(buf, "INSERT INTO user(id,username,password,phone,uuid,registTime) VALUES(null,'%s','%s',%lu,'%s',%lu);",
                     username.c_str(), password.c_str(), phone, uuid.c_str(), time(NULL));
             string sql(buf);
-            MyDB::getInstance()->execSQL(sql);
+            MyDB::getInstance()->asyncExecSQL(sql);
             memset(buf, 0, 2048);
             sprintf(buf, "INSERT INTO money(id,uuid,amount,welfare,updateTime) VALUES(null,'%s',%lf,%lf,%lu);",
                     uuid.c_str(), amount, welfare, time(NULL));
             sql = string(buf);
-            MyDB::getInstance()->execSQL(sql);
+            MyDB::getInstance()->asyncExecSQL(sql);
             tran.commit();
         }
         catch (std::exception &e)
@@ -104,7 +104,7 @@ namespace ad_namespace
             sprintf(buf, "INSERT INTO ad(id,uuid,type,imageUrl,url,content,updateTime,status) VALUES(%u,'%s',%u,'%s','%s','%s',%lu,%u);",
                     id, uuid.c_str(), type, imageUrl.c_str(), url.c_str(), content.c_str(), time(NULL), errorEnum::NOT_ADUIT);
             string sql = string(buf);
-            MyDB::getInstance()->execSQL(sql);
+            MyDB::getInstance()->asyncExecSQL(sql);
 
             memset(buf, 0, 2048);
             if (type == errorEnum::ADType::CLICK)
@@ -149,7 +149,7 @@ namespace ad_namespace
             }
             if (sql.size())
             {
-                MyDB::getInstance()->execSQL(sql);
+                MyDB::getInstance()->asyncExecSQL(sql);
             }
 
             tran.commit();
@@ -215,7 +215,7 @@ namespace ad_namespace
 
             if (sql.size())
             {
-                MyDB::getInstance()->execSQL(sql);
+                MyDB::getInstance()->asyncExecSQL(sql);
             }
 
             tran.commit();

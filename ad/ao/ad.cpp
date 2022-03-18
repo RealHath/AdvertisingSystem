@@ -151,7 +151,7 @@ namespace ad_namespace
 
             char buf[2048];
             sprintf(buf, "SELECT * FROM ad WHERE type=%u OR status=%u;", type, errorEnum::ADUITED);
-            auto ret = MyDB::getInstance()->execSQL(string(buf));
+            auto ret = MyDB::getInstance()->syncExecSQL(string(buf));
             for (size_t i = 0; i < ret.size(); i++)
             {
                 auto m = ret[0];
@@ -225,7 +225,7 @@ namespace ad_namespace
 
         char buf[2048];
         sprintf(buf, "SELECT * FROM ad WHERE id=%u;", id);
-        auto ret = MyDB::getInstance()->execSQL(string(buf));
+        auto ret = MyDB::getInstance()->syncExecSQL(string(buf));
         if (ret.size())
         {
             auto m = ret[0];
@@ -266,7 +266,7 @@ namespace ad_namespace
         memset(buf, 0, 2048);
         sprintf(buf, "SELECT * FROM user WHERE uuid='%s';", uuid.c_str());
         string sql(buf);
-        auto ret1 = MyDB::getInstance()->execSQL(sql);
+        auto ret1 = MyDB::getInstance()->syncExecSQL(sql);
         if (ret1.size())
         {
             username = ret1[0]["username"];
@@ -281,7 +281,7 @@ namespace ad_namespace
         memset(buf, 0, 2048);
         sprintf(buf, "SELECT * FROM money WHERE uuid='%s';", uuid.c_str());
         sql = string(buf);
-        ret1 = MyDB::getInstance()->execSQL(sql);
+        ret1 = MyDB::getInstance()->syncExecSQL(sql);
         if (ret1.size())
         {
             amount = strtod(ret1[0]["amount"].c_str(), nullptr);
@@ -313,7 +313,7 @@ namespace ad_namespace
     {
         char buf[2048];
         sprintf(buf, "SELECT COUNT(id) FROM ad WHERE 1=1;");
-        auto ret = MyDB::getInstance()->execSQL(string(buf));
+        auto ret = MyDB::getInstance()->syncExecSQL(string(buf));
 
         uint32_t id = strtoul(ret[0]["COUNT(id)"].c_str(), nullptr, 0);
 
