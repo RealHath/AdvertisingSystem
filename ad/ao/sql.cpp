@@ -3,14 +3,16 @@
 #include "errorEnum.pb.h"
 #include <mutex>
 
-std::mutex g_mtx;
+std::mutex read_mtx;
+std::mutex write_mtx;
 
 using namespace std;
 
 MyDB::MyDB(/* args */)
 {
 	// mysql = mysql_init(nullptr);
-	conn = new mysqlpp::Connection(false);
+	write_conn = new mysqlpp::Connection(false);
+	read_conn = new mysqlpp::Connection(false);
 }
 
 MyDB::~MyDB()
@@ -24,8 +26,10 @@ MyDB::~MyDB()
 	// 	mysql_free_result(result);
 	// }
 	// conn->shutdown();
-	conn->disconnect();
-	delete conn;
+	write_conn->disconnect();
+	read_conn->disconnect();
+	delete read_conn;
+	delete write_conn;
 }
 
 MyDB *MyDB::getInstance()
@@ -37,8 +41,9 @@ MyDB *MyDB::getInstance()
 bool MyDB::connect(std::string host, int port, std::string user, std::string passwd, std::string database)
 {
 	// mysql = mysql_real_connect(mysql, host.c_str(), user.c_str(), passwd.c_str(), database.c_str(), port, nullptr, 0);
-	conn->connect(database.c_str(), host.c_str(), user.c_str(), passwd.c_str(), port);
-	if (mysql == nullptr && conn->connected() == false)
+	write_conn->connect(database.c_str(), host.c_str(), user.c_str(), passwd.c_str(), port);
+	read_conn->connect(database.c_str(), host.c_str(), user.c_str(), passwd.c_str(), port);
+	if (read_conn->connected() == false || write_conn->connected() == false)
 	{
 		std::cout << "connect database failed!" << std::endl;
 		return false;
@@ -50,17 +55,17 @@ bool MyDB::connect(std::string host, int port, std::string user, std::string pas
 // 用于查询
 vector<std::unordered_map<string, string>> MyDB::syncExecSQL(string sql = "PING")
 {
-	std::lock_guard<std::mutex> g_lock(g_mtx);
+	std::lock_guard<std::mutex> g_lock(read_mtx);
 	if (sql == "PING")
 	{
 		LOG(INFO) << "Mysql Ping!!!!!";
-		conn->ping();
+		read_conn->ping();
 		return {};
 	}
 	LOG(INFO) << "syncExecSQL: " << sql;
 	vector<std::unordered_map<string, string>> res;
 	// sql = "SELECT * FROM user WHERE uuid='94f06243-7feb-443f-b4d9-a7d1f820171e';";
-	auto query = conn->query();
+	auto query = read_conn->query();
 	query << sql;
 	mysqlpp::StoreQueryResult ares = query.store();
 	// LOG(INFO) << "ares.num_rows() = " << ares.num_rows();
@@ -92,15 +97,15 @@ vector<std::unordered_map<string, string>> MyDB::syncExecSQL(string sql = "PING"
 // 用于修改
 void MyDB::asyncExecSQL(string sql = "PING")
 {
-	std::lock_guard<std::mutex> g_lock(g_mtx);
+	std::lock_guard<std::mutex> g_lock(write_mtx);
 	if (sql == "PING")
 	{
 		LOG(INFO) << "Mysql Ping!!!!!";
-		conn->ping();
+		write_conn->ping();
 		return;
 	}
 	LOG(INFO) << "asyncExecSQL: " << sql;
-	auto query = conn->query();
+	auto query = write_conn->query();
 	query << sql;
 	bool flag = query.exec();
 
@@ -112,5 +117,5 @@ void MyDB::asyncExecSQL(string sql = "PING")
 
 mysqlpp::Connection *MyDB::getConnection()
 {
-	return this->conn;
+	return this->write_conn;
 }

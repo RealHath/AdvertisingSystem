@@ -196,8 +196,6 @@ int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &re
     user->updateMoney(cost * -1);
     ad->updateCost(cost);
 
-
-cout << user->amount << "   " << cost << endl;
     if (user->amount < cost)
     {
         ad->status = errorEnum::NOT_ADUIT;
