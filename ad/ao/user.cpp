@@ -99,6 +99,8 @@ namespace ad_namespace
             // sprintf(buf, "UPDATE adAction SET status=%u WHERE uuid='%s';",
             //         status, uuid.c_str());
             // MyDB::getInstance()->asyncExecSQL(string(buf));
+
+            tran.commit();
         }
         catch (std::exception &e)
         {
@@ -130,7 +132,7 @@ namespace ad_namespace
         {
             char buf[2048];
             sprintf(buf, "INSERT INTO ad(id,uuid,type,imageUrl,url,content,updateTime,status) VALUES(%u,'%s',%u,'%s','%s','%s',%lu,%u);",
-                    id, uuid.c_str(), type, imageUrl.c_str(), url.c_str(), content.c_str(), time(NULL), errorEnum::NOT_ADUIT);
+                    id, uuid.c_str(), type, imageUrl.c_str(), url.c_str(), content.c_str(), time(NULL), status);
             string sql = string(buf);
             MyDB::getInstance()->asyncExecSQL(sql);
 

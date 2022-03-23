@@ -48,6 +48,20 @@ int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp 
         return 0;
     }
 
+    if (ad->type != errorEnum::VISIT)
+    {
+        resp.set_err(errorEnum::TYPE_NE_ID);
+        resp.set_msg("广告id类型不匹配接口");
+        return 0;
+    }
+
+    if (ad->status == errorEnum::NOT_ADUIT)
+    {
+        resp.set_err(errorEnum::HAS_PUTDOWN);
+        resp.set_msg("广告已下架");
+        return 0;
+    }
+
     auto user = getUser(ad->uuid);
     if (user == nullptr)
     {
@@ -61,12 +75,13 @@ int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp 
     // g_countMap[ad->uuid]->countAdd(ad->type);
     user->amount -= cost;
     user->updateMoney(cost * -1);
-    ad->updateCost();
+    ad->updateCost(cost);
 
     if (user->amount < cost)
     {
+        ad->status = errorEnum::NOT_ADUIT;
         user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
-        g_typeMap[ad->type].clear();
+        // g_typeMap[ad->type].clear();
     }
 
     resp.set_err(errorEnum::SUCCESS);
@@ -92,6 +107,20 @@ int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &re
         return 0;
     }
 
+    if (ad->type != errorEnum::SHOP)
+    {
+        resp.set_err(errorEnum::TYPE_NE_ID);
+        resp.set_msg("广告id类型不匹配接口");
+        return 0;
+    }
+
+    if (ad->status == errorEnum::NOT_ADUIT)
+    {
+        resp.set_err(errorEnum::HAS_PUTDOWN);
+        resp.set_msg("广告已下架");
+        return 0;
+    }
+
     auto user = getUser(ad->uuid);
     if (user == nullptr)
     {
@@ -100,17 +129,18 @@ int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &re
     }
 
     int a = rand() % 70 - 30;
-    double cost = VISIT_COST + a / 100.0;
+    double cost = SHOP_COST + a / 100.0;
 
     // g_countMap[ad->uuid]->countAdd(ad->type);
     user->amount -= cost;
     user->updateMoney(cost * -1);
-    ad->updateCost();
+    ad->updateCost(cost);
 
     if (user->amount < cost)
     {
+        ad->status = errorEnum::NOT_ADUIT;
         user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
-        g_typeMap[ad->type].clear();
+        // g_typeMap[ad->type].clear();
     }
 
     resp.set_err(errorEnum::SUCCESS);
@@ -137,6 +167,20 @@ int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &re
         return 0;
     }
 
+    if (ad->type != errorEnum::SELL)
+    {
+        resp.set_err(errorEnum::TYPE_NE_ID);
+        resp.set_msg("广告id类型不匹配接口");
+        return 0;
+    }
+
+    if (ad->status == errorEnum::NOT_ADUIT)
+    {
+        resp.set_err(errorEnum::HAS_PUTDOWN);
+        resp.set_msg("广告已下架");
+        return 0;
+    }
+
     auto user = getUser(ad->uuid);
     if (user == nullptr)
     {
@@ -145,17 +189,20 @@ int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &re
     }
 
     int a = rand() % 10 - 5;
-    double cost = VISIT_COST + a;
+    double cost = SELL_COST + a;
 
     // g_countMap[ad->uuid]->countAdd(ad->type);
-    user->amount -= SELL_COST;
-    user->updateMoney(SELL_COST * -1);
-    ad->updateCost();
+    user->amount -= cost;
+    user->updateMoney(cost * -1);
+    ad->updateCost(cost);
 
+
+cout << user->amount << "   " << cost << endl;
     if (user->amount < cost)
     {
+        ad->status = errorEnum::NOT_ADUIT;
         user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
-        g_typeMap[ad->type].clear();
+        // g_typeMap[ad->type].clear();
     }
 
     resp.set_err(errorEnum::SUCCESS);
@@ -196,7 +243,7 @@ int Ad::costPerTime(ad_proto::CostPerTimeReq &req, ad_proto::CostPerTimeResp &re
     // if (user->amount < cost)
     // {
     //     user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
-    g_typeMap[ad->type].clear();
+    // g_typeMap[ad->type].clear();
     // }
 
     resp.set_err(errorEnum::SUCCESS);

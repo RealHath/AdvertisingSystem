@@ -68,6 +68,20 @@ namespace ad_namespace
             return 0;
         }
 
+        if (ad->type != errorEnum::CLICK)
+        {
+            resp.set_err(errorEnum::TYPE_NE_ID);
+            resp.set_msg("广告id类型不匹配接口");
+            return 0;
+        }
+
+        if (ad->status == errorEnum::NOT_ADUIT)
+        {
+            resp.set_err(errorEnum::HAS_PUTDOWN);
+            resp.set_msg("广告已下架");
+            return 0;
+        }
+
         auto user = getUser(ad->uuid);
         if (user == nullptr)
         {
@@ -85,8 +99,9 @@ namespace ad_namespace
 
         if (user->amount < cost)
         {
+            ad->status = errorEnum::NOT_ADUIT;
             user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
-            g_typeMap[ad->type].clear();
+            // g_typeMap[ad->type].clear();
         }
 
         resp.set_err(errorEnum::SUCCESS);
@@ -111,6 +126,20 @@ namespace ad_namespace
             return 0;
         }
 
+        if (ad->type != errorEnum::MILLE)
+        {
+            resp.set_err(errorEnum::TYPE_NE_ID);
+            resp.set_msg("广告id类型不匹配接口");
+            return 0;
+        }
+
+        if (ad->status == errorEnum::NOT_ADUIT)
+        {
+            resp.set_err(errorEnum::HAS_PUTDOWN);
+            resp.set_msg("广告已下架");
+            return 0;
+        }
+
         auto user = getUser(ad->uuid);
         if (user == nullptr)
         {
@@ -128,8 +157,9 @@ namespace ad_namespace
 
         if (user->amount < cost)
         {
+            ad->status = errorEnum::NOT_ADUIT;
             user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
-            g_typeMap[ad->type].clear();
+            // g_typeMap[ad->type].clear();
         }
 
         resp.set_err(errorEnum::SUCCESS);
@@ -162,8 +192,31 @@ namespace ad_namespace
             return 0;
         }
 
+        // 资金够了才能过审
+        uint32_t status = errorEnum::NOT_ADUIT;
+        if (type == errorEnum::CLICK && user->amount > CLICK_COST)
+        {
+            status = errorEnum::ADUITED;
+        }
+        else if (type == errorEnum::MILLE && user->amount > MILLE_COST)
+        {
+            status = errorEnum::ADUITED;
+        }
+        else if (type == errorEnum::VISIT && user->amount > VISIT_COST)
+        {
+            status = errorEnum::ADUITED;
+        }
+        else if (type == errorEnum::SHOP && user->amount > SHOP_COST)
+        {
+            status = errorEnum::ADUITED;
+        }
+        else if (type == errorEnum::SELL && user->amount > SELL_COST)
+        {
+            status = errorEnum::ADUITED;
+        }
+
         uint32_t id = generateAdId();
-        Advertise ad(id, uuid, imageUrl, url, content, type, errorEnum::ADUITED);
+        Advertise ad(id, uuid, imageUrl, url, content, type, status);
         ad_ptr ptr = make_shared<Advertise>(ad);
         ptr->insertAd();
 
@@ -208,7 +261,7 @@ namespace ad_namespace
             return 0;
         }
 
-        if (g_typeMap[type].empty())
+        if (true || g_typeMap[type].empty())
         {
             // g_AUMap.clear();
             g_typeMap[type].clear();
@@ -296,7 +349,6 @@ namespace ad_namespace
         if (rand_count >= len)
         {
             result = src;
-            LOG(ERROR) << "not enough ad object!!!";
             return;
         }
 

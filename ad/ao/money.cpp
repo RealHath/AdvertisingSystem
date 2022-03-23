@@ -22,6 +22,8 @@ extern std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
 extern std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
 extern bool initUser(string uuid); // 将用户数据加载到内存
 
+// extern static std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
+
 /////////---------------------------------------------------
 int Ad::getFundInfo(ad_proto::GetFundInfoReq &req, ad_proto::GetFundInfoResp &resp)
 {
@@ -101,25 +103,45 @@ int Ad::recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp)
     double amount = user->amount;
     double welfare = user->welfare;
 
+    vector<uint32_t> res;
+    // 重制使过审
     if (amount > CLICK_COST)
     {
+        res.push_back(errorEnum::CLICK);
         user->changeAdStatus(errorEnum::ADUITED, errorEnum::CLICK);
     }
     if (amount > MILLE_COST / 1000)
     {
+        res.push_back(errorEnum::MILLE);
         user->changeAdStatus(errorEnum::ADUITED, errorEnum::MILLE);
     }
     if (amount > VISIT_COST)
     {
+        res.push_back(errorEnum::VISIT);
         user->changeAdStatus(errorEnum::ADUITED, errorEnum::VISIT);
     }
     if (amount > SHOP_COST)
     {
+        res.push_back(errorEnum::SHOP);
         user->changeAdStatus(errorEnum::ADUITED, errorEnum::SHOP);
     }
     if (amount > SELL_COST)
     {
+        res.push_back(errorEnum::SELL);
         user->changeAdStatus(errorEnum::ADUITED, errorEnum::SELL);
+    }
+
+    // 无效
+    // 将内存的ad状态修改为过审
+    for (auto &type : res)
+    {
+        for (auto &ptr : g_typeMap[type])
+        {
+            if (user->uuid == ptr->uuid)
+            {
+                ptr->status = errorEnum::ADUITED;
+            }
+        }
     }
 
     resp.set_err(errorEnum::SUCCESS);

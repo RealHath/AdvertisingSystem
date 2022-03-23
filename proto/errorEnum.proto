@@ -17,6 +17,8 @@ enum ErrorCode {
     NOT_ENOUGH_AD   = 8;    // 广告数量不足
     INPUT_ERROR     = 9;    // 输入错误
     EMPTY_ADID      = 10;   // 广告id空
+    TYPE_NE_ID      = 11;   // 广告id类型不匹配接口
+    HAS_PUTDOWN     = 12;   // 广告已下架
 }
 
 // 广告类型
