@@ -6,13 +6,17 @@
 #include <memory>
 #include <codecvt>
 #include <set>
+#include <algorithm>
+#include <mutex>
+#include <random>
+#include <iomanip>
 
 #include "sql.h"
 #include "errorEnum.pb.h"
 #include "ad.h"
 // #include "mysqlSave.h"
 #include "common.h"
-#include "mysql.pb.h"
+// #include "mysql.pb.h"
 #include "user.h"
 #include "const.h"
 
@@ -34,6 +38,9 @@ DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 // static std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
 // static std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
 
+std::mutex init_mtx;
+// default_random_engine e(time(NULL));
+
 namespace ad_namespace
 {
     Ad::Ad()
@@ -44,6 +51,13 @@ namespace ad_namespace
     }
     int Ad::costPerClick(ad_proto::CostPerClickReq &req, ad_proto::CostPerClickResp &resp)
     {
+        if (!req.has_id())
+        {
+            resp.set_err(errorEnum::EMPTY_ADID);
+            resp.set_msg("广告id空");
+            return 0;
+        }
+
         // 1. 处理入参
         uint32_t id = req.id();
         auto ad = getAdvertise(id);
@@ -60,10 +74,20 @@ namespace ad_namespace
             initUser(ad->uuid);
             user = getUser(ad->uuid);
         }
+        // uniform_real_distribution<int> u(-5, 10);
+        int a = rand() % 20 - 10;
+        double cost = CLICK_COST + a / 100.0;
 
-        user->amount -= CLICK_COST;
-        user->updateMoney(CLICK_COST * -1);
-        ad->updateCost();
+        // g_countMap[ad->uuid]->countAdd(ad->type);
+        user->amount -= cost;
+        user->updateMoney(cost * -1);
+        ad->updateCost(cost);
+
+        if (user->amount < cost)
+        {
+            user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
+            g_typeMap[ad->type].clear();
+        }
 
         resp.set_err(errorEnum::SUCCESS);
         resp.set_msg("CPC");
@@ -71,6 +95,12 @@ namespace ad_namespace
     }
     int Ad::costPerMille(ad_proto::CostPerMilleReq &req, ad_proto::CostPerMilleResp &resp)
     {
+        if (!req.has_id())
+        {
+            resp.set_err(errorEnum::EMPTY_ADID);
+            resp.set_msg("广告id空");
+            return 0;
+        }
 
         uint32_t id = req.id();
         auto ad = getAdvertise(id);
@@ -87,10 +117,20 @@ namespace ad_namespace
             initUser(ad->uuid);
             user = getUser(ad->uuid);
         }
+        // uniform_real_distribution<int> u(-5, 10);
+        int a = rand() % 10 - 5;
+        double cost = (MILLE_COST + a) / 1000;
 
-        user->amount -= MILLE_COST;
-        user->updateMoney(MILLE_COST * -1);
-        ad->updateCost();
+        // g_countMap[ad->uuid]->countAdd(ad->type);
+        user->amount -= cost;
+        user->updateMoney(cost / 1000 * -1);
+        ad->updateCost(cost);
+
+        if (user->amount < cost)
+        {
+            user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
+            g_typeMap[ad->type].clear();
+        }
 
         resp.set_err(errorEnum::SUCCESS);
         resp.set_msg("CPM");
@@ -99,6 +139,13 @@ namespace ad_namespace
 
     int Ad::putAdvertise(ad_proto::PutAdvertiseReq &req, ad_proto::PutAdvertiseResp &resp)
     {
+        if (!req.has_uuid() || !req.has_type() || !req.has_imageurl())
+        {
+            resp.set_err(errorEnum::INPUT_ERROR);
+            resp.set_msg("输入错误");
+            return 0;
+        }
+
         // 1. 处理入参
         string uuid = req.uuid();
         string imageUrl = req.imageurl();
@@ -116,7 +163,7 @@ namespace ad_namespace
         }
 
         uint32_t id = generateAdId();
-        Advertise ad(id, uuid, imageUrl, url, content, type, errorEnum::NOT_ADUIT);
+        Advertise ad(id, uuid, imageUrl, url, content, type, errorEnum::ADUITED);
         ad_ptr ptr = make_shared<Advertise>(ad);
         ptr->insertAd();
 
@@ -141,17 +188,34 @@ namespace ad_namespace
     //随机返回一个广告
     int Ad::getAdInfo(ad_proto::GetAdInfoReq &req, ad_proto::GetAdInfoResp &resp)
     {
+        if (!req.has_type() || !req.has_num())
+        {
+            resp.set_err(errorEnum::INPUT_ERROR);
+            resp.set_msg("输入错误");
+            return 0;
+        }
+
         // 1. 处理入参
         uint32_t type = req.type();
         uint32_t num = req.num();
+        // uint32_t type = 1;
+        // uint32_t num = 4;
 
-        if (g_AUMap.empty() || g_typeMap.empty())
+        if (num <= 0 || !checkType(type))
         {
-            g_AUMap.clear();
-            g_typeMap.clear();
+            resp.set_err(errorEnum::INPUT_ERROR);
+            resp.set_msg("输入错误");
+            return 0;
+        }
+
+        if (g_typeMap[type].empty())
+        {
+            // g_AUMap.clear();
+            g_typeMap[type].clear();
 
             char buf[2048];
-            sprintf(buf, "SELECT * FROM ad WHERE type=%u OR status=%u;", type, errorEnum::ADUITED);
+            sprintf(buf, "SELECT * FROM ad WHERE type=%u AND status=%u;", type, errorEnum::ADUITED);
+            // sprintf(buf, "SELECT * FROM ad;");
             auto ret = MyDB::getInstance()->syncExecSQL(string(buf));
             for (size_t i = 0; i < ret.size(); i++)
             {
@@ -177,23 +241,25 @@ namespace ad_namespace
             resp.set_msg("没有广告");
             return 0;
         }
+        // 打乱
+        // std::shuffle(g_typeMap[type].begin(), g_typeMap[type].end());
 
         // 随机取出一个广告
-        std::set<size_t> uniqueSet;
-        auto vec = g_typeMap[type];
-        for (size_t i = 0; i < num; i++)
+        vector<shared_ptr<Advertise>> result;
+        generateRandomId(g_typeMap[type], num, result);
+        for (auto &ad : result)
         {
             // size_t randVal = rand() % g_typeMap[type].size();
-            auto randId = generateRandomId(vec, uniqueSet);
-            if (randId == -1)
-            {
-                LOG(ERROR) << "not enough ad object!!!";
-                resp.set_err(errorEnum::NOT_ENOUGH_AD);
-                resp.set_msg("广告数量不足");
-                return 0;
-            }
+            // auto randId = generateRandomId(vec, uniqueSet);
+            // if (randId == -1)
+            // {
+            //     LOG(ERROR) << "not enough ad object!!!";
+            //     resp.set_err(errorEnum::NOT_ENOUGH_AD);
+            //     resp.set_msg("广告数量不足");
+            //     return 0;
+            // }
 
-            auto ad = g_typeMap[type].at(randId);
+            // auto ad = g_typeMap[type].at(randId);
             uint32_t id = ad->id;
             string uuid = ad->uuid;
             string imageUrl = ad->imageUrl;
@@ -209,6 +275,14 @@ namespace ad_namespace
             info->set_type(type);
         }
 
+        // auto randId = generateRandomId(vec, uniqueSet);
+        if (result.size() < num)
+        {
+            LOG(ERROR) << "not enough ad object!!!";
+            resp.set_err(errorEnum::NOT_ENOUGH_AD);
+            resp.set_msg("广告数量不足");
+            return 0;
+        }
         resp.set_err(errorEnum::SUCCESS);
         resp.set_msg("获取广告成功");
 
@@ -216,41 +290,32 @@ namespace ad_namespace
     }
 
     // 获取广告时非重复
-    int Ad::generateRandomId(vector<shared_ptr<Advertise>> &vec, set<size_t> &s)
+    void Ad::generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result)
     {
-        long maxValue = 0;
-        for (size_t i = 0; i < vec.size(); i++)
+        size_t len = src.size();
+        if (rand_count >= len)
         {
-            // 1权重
-            if (!s.count(i))
-            {
-                maxValue += 1;
-            }
-        }
-
-        if (maxValue == 0)
-        {
+            result = src;
             LOG(ERROR) << "not enough ad object!!!";
-            return -1;
+            return;
         }
 
-        long curValue = 0;
-        long randValue = random() % maxValue + 1;
-        for (size_t i = 0; i < vec.size(); i++)
+        for (size_t i = 0; i < rand_count; i++)
         {
-            if (!s.count(i))
-            {
-                curValue += 1;
-                if (curValue >= randValue)
-                {
-                    s.insert(i);
-                    return i;
-                }
-            }
+            size_t j = rand() % len;
+            auto tmp = src[i];
+            src[i] = src[j];
+            src[j] = tmp;
         }
 
-        LOG(ERROR) << "not enough ad object!!!";
-        return -1;
+        result.clear();
+        result.reserve(rand_count);
+        for (size_t i = 0; i < rand_count; i++)
+        {
+            result.push_back(src[i]);
+        }
+
+        return;
     }
 
     //获得用户
@@ -298,11 +363,19 @@ namespace ad_namespace
     // 将用户数据加载到内存
     bool Ad::initUser(string uuid)
     {
-        if (g_AUMap.find(uuid) != g_AUMap.end() &&
-            g_userMap.find(uuid) != g_userMap.end())
+        std::lock_guard<std::mutex> init_lock(init_mtx);
+        // if (g_AUMap.find(uuid) != g_AUMap.end() &&
+        if (g_userMap.find(uuid) != g_userMap.end() &&
+            g_countMap.find(uuid) != g_countMap.end())
         {
             return true;
         }
+        // g_AUMap[uuid].clear();
+        g_userMap[uuid].reset();
+        g_userMap.erase(uuid);
+        g_countMap[uuid].reset();
+        g_countMap.erase(uuid);
+
         // 基本数据
         string username;
         string password;
@@ -341,13 +414,47 @@ namespace ad_namespace
             return false;
         }
         //广告数据
-        ad_list list;
+        // ad_list list;
 
         ADUser user(uuid, username, password, phone, amount, welfare);
         user_ptr ptr = make_shared<ADUser>(user);
         g_userMap[uuid] = ptr;
-        g_AUMap[uuid] = list;
+        // g_AUMap[uuid] = list;
         // g_adMap[id] = ptr;
+
+        // 统计类
+        uint64_t clickNum = 0;
+        uint64_t showNum = 0;
+        uint64_t sellNum = 0;
+        uint64_t visitNum = 0;
+        uint64_t shopNum = 0;
+        // char buf[2048];
+        memset(buf, 0, 2048);
+        sprintf(buf, "SELECT SUM(click), SUM(exposure) FROM adFlow WHERE uuid='%s';", uuid.c_str());
+        ret1 = MyDB::getInstance()->syncExecSQL(string(buf));
+
+        memset(buf, 0, 2048);
+        sprintf(buf, "SELECT SUM(sell), SUM(visit), SUM(shop) FROM adAction WHERE uuid='%s';", uuid.c_str());
+        auto ret2 = MyDB::getInstance()->syncExecSQL(string(buf));
+
+        if (ret1.size())
+        {
+            clickNum = strtoull(ret1[0]["SUM(click)"].c_str(), nullptr, 0);
+            showNum = strtoull(ret1[0]["SUM(exposure)"].c_str(), nullptr, 0);
+        }
+        if (ret2.size())
+        {
+            sellNum = strtoull(ret2[0]["SUM(sell)"].c_str(), nullptr, 0);
+            visitNum = strtoull(ret2[0]["SUM(visit)"].c_str(), nullptr, 0);
+            shopNum = strtoull(ret2[0]["SUM(shop)"].c_str(), nullptr, 0);
+        }
+
+        double costs = clickNum * CLICK_COST + (showNum / 1000.0) * MILLE_COST +
+                       sellNum * SELL_COST + visitNum * VISIT_COST + shopNum * SHOP_COST;
+
+        ADCount c(costs, clickNum, showNum, sellNum, visitNum, shopNum);
+        auto c_ptr = make_shared<ADCount>(c);
+        g_countMap[uuid] = c_ptr;
 
         LOG(INFO) << "数据："
                   << " uuid:" << uuid << " username:" << username
@@ -368,5 +475,20 @@ namespace ad_namespace
 
         LOG(INFO) << "COUNT(id): " << id;
         return id + 1;
+    }
+
+    bool Ad::checkType(uint32_t type)
+    {
+        if (type == errorEnum::CLICK ||
+            type == errorEnum::MILLE ||
+            type == errorEnum::VISIT ||
+            type == errorEnum::SHOP ||
+            type == errorEnum::TIME ||
+            type == errorEnum::SELL)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -10,7 +10,7 @@
 #include "ad.h"
 // #include "mysqlSave.h"
 #include "common.h"
-#include "mysql.pb.h"
+// #include "mysql.pb.h"
 #include "user.h"
 
 using namespace std;
@@ -30,6 +30,13 @@ extern bool initUser(string uuid); // 将用户数据加载到内存
 //----------------------------------------------------------
 int Ad::login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp)
 {
+    if (!req.has_username() || !req.has_password())
+    {
+        resp.set_err(errorEnum::INPUT_ERROR);
+        resp.set_msg("输入错误");
+        return 0;
+    }
+
     // 1. 处理入参
     string username = req.username();
     string password = req.password();
@@ -50,6 +57,7 @@ int Ad::login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp)
     else
     {
         string uuid = ret[0]["uuid"];
+        uint64_t phone = strtoull(ret[0]["phone"].c_str(), nullptr, 0);
         if (getUser(uuid) == nullptr)
         {
             initUser(uuid);
@@ -58,16 +66,25 @@ int Ad::login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp)
         resp.set_err(errorEnum::SUCCESS);
         resp.set_msg("登陆成功");
         resp.set_uuid(uuid);
+        resp.set_phone(phone);
         return errorEnum::SUCCESS;
     }
     return 0;
 }
 int Ad::regist(ad_proto::RegisterReq &req, ad_proto::RegisterResp &resp)
 {
+    if (!req.has_username() || !req.has_password() || !req.has_phone())
+    {
+        resp.set_err(errorEnum::INPUT_ERROR);
+        resp.set_msg("输入错误");
+        return 0;
+    }
+
     // 1. 处理入参
     string username = req.username();
     string password = req.password();
     uint64_t phone = req.phone();
+
     char s[255];
     sprintf(s, "SELECT * FROM user WHERE username='%s';",
             username.c_str());

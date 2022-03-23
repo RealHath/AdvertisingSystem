@@ -81,6 +81,11 @@ vector<std::unordered_map<string, string>> MyDB::syncExecSQL(string sql = "PING"
 		res.push_back(tmp);
 	}
 
+	if (res.size() == 0)
+	{
+		LOG(WARNING) << "result empty!! sql: " << sql;
+	}
+
 	return res;
 }
 
@@ -97,7 +102,12 @@ void MyDB::asyncExecSQL(string sql = "PING")
 	LOG(INFO) << "asyncExecSQL: " << sql;
 	auto query = conn->query();
 	query << sql;
-	query.execute();
+	bool flag = query.exec();
+
+	if (!flag)
+	{
+		LOG(ERROR) << "asyncExecSQL failed!! sql: " << sql;
+	}
 }
 
 mysqlpp::Connection *MyDB::getConnection()

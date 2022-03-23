@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <unordered_map>
+#include <atomic>
 
 #include "errorEnum.pb.h"
 
@@ -23,7 +24,6 @@ namespace ad_namespace
         uint32_t type;
         uint32_t status;
         uint64_t lDt; //最后更新时间
-        
 
     public:
         Advertise(/* args */);
@@ -33,7 +33,7 @@ namespace ad_namespace
 
     public:
         void insertAd();
-        void updateCost();
+        void updateCost(double cost = 0); //更新广告统计数据
     };
 
     // 用户类，缓存
@@ -61,6 +61,7 @@ namespace ad_namespace
         string getUuid();
         void updateMoney(double increment);
         void insertUser();
+        void changeAdStatus(uint32_t status, uint32_t type); // 修改广告状态
     };
 
     // 统计类
@@ -74,10 +75,19 @@ namespace ad_namespace
         uint64_t visitNum; // 浏览
         uint64_t shopNum;  // 加购
 
+        double clickCost;
+        double showCost;
+        double sellCost;
+        double visitCost;
+        double shopCost;
+
     public:
         ADCount(/* args */);
         ADCount(double costs, uint64_t clickNum, uint64_t showNum, uint64_t sellNum, uint64_t visitNum, uint64_t shopNum);
         ~ADCount();
+
+    public:
+        void countAdd(uint32_t type); // 内存数据更新
     };
 }
 

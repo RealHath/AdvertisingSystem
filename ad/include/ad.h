@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 #include "ad.pb.h"
-#include "mysql.pb.h"
+// #include "mysql.pb.h"
 
 using namespace std;
 
@@ -47,19 +47,22 @@ namespace ad_namespace
         bool initUser(string uuid); // 将用户数据加载到内存
         uint32_t generateAdId();    // 生成广告id
         // void init();
-        int generateRandomId(vector<shared_ptr<Advertise>> &vec, set<size_t> &s); //不重复随机生成
+        void generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result); //不重复随机生成
+        bool checkType(uint32_t type);                                                                                       // 验证type是否合法
     };
 }
 
-typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;
-typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
-typedef std::shared_ptr<ad_namespace::ADCount> count_ptr;
-typedef std::unordered_map<uint32_t, ad_ptr> ad_list;
+typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;     // 用户类指针
+static std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
 
-static std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
-static std::unordered_map<uint32_t, ad_ptr> g_adMap;           // 用户广告映射表
+typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr; // 广告类指针
+static std::unordered_map<uint32_t, ad_ptr> g_adMap;     // 用户广告映射表
+
+typedef std::unordered_map<uint32_t, ad_ptr> ad_list;          // 广告id映射广告指针
 static std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
 static std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
-static std::unordered_map<std::string, count_ptr> g_countMap;  // 统计表
+
+typedef std::shared_ptr<ad_namespace::ADCount> count_ptr;     // 统计类指针
+static std::unordered_map<std::string, count_ptr> g_countMap; // 统计表
 
 #endif

@@ -19,6 +19,9 @@
 #include "errorEnum.pb.h"
 // #include "user.h"
 
+// 自定义日志
+// #include "myLog.h"
+
 using namespace std;
 
 // ip
@@ -38,7 +41,7 @@ DEFINE_string(url, "127.0.0.1", "mysql url");
 DEFINE_int32(port, 3306, "mysql port");
 DEFINE_string(user, "root", "mysql user");
 DEFINE_string(password, "mysqlroot", "mysql password");
-DEFINE_string(database, "ADSystem", "mysql database");
+DEFINE_string(database, "ad2", "mysql database");
 DEFINE_uint64(MAXSIZE, 1024, "queue maxsize");
 
 ad_namespace::Ad *ad_ao;
@@ -490,34 +493,32 @@ namespace ad_proto
 // 日志配置
 void configLog(void *)
 {
-    LOG(INFO) << "start log config thread. threadId: " << std::this_thread::get_id();
-    while (true)
+
+    const char *moduleName = "ad";
+    // 日志
+    mkdir("log", 0755);
+    // time
+    // time_t t = time(NULL);
+    // struct tm *sys_tm = localtime(&t);
+    // struct tm my_tm = *sys_tm;
+    // // log config
+    // char log_full_name[255];
+    // sprintf(log_full_name, "log/%s_%d_%02d_%02d.log", moduleName, my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
+    // std::string log_path = log_full_name;
+
+    // 日期日志自行改源码
+    std::string log_path = "log/" + string(moduleName);
+    ::logging::LoggingSettings log_setting;          //创建LoggingSetting对象进行设置
+    log_setting.log_file = log_path.c_str();         //设置日志路径
+    log_setting.logging_dest = logging::LOG_TO_FILE; //设置日志写到文件，不写的话不生效
+    bool flag = ::logging::InitLogging(log_setting); //应用日志设置
+    if (flag)
     {
-        const char *moduleName = "ad";
-        // 日志
-        mkdir("log", 0755);
-        // time
-        time_t t = time(NULL);
-        struct tm *sys_tm = localtime(&t);
-        struct tm my_tm = *sys_tm;
-        // log config
-        char log_full_name[255];
-        snprintf(log_full_name, 255, "log/%s_%d_%02d_%02d.log", moduleName, my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
-        std::string log_path = log_full_name;
-        ::logging::LoggingSettings log_setting;          //创建LoggingSetting对象进行设置
-        log_setting.log_file = log_path.c_str();         //设置日志路径
-        log_setting.logging_dest = logging::LOG_TO_FILE; //设置日志写到文件，不写的话不生效
-        bool flag = ::logging::InitLogging(log_setting); //应用日志设置
-        if (flag)
-        {
-            LOG(INFO) << "config log sucess!";
-        }
-        else
-        {
-            LOG(ERROR) << "config log fail!";
-        }
-        // std::this_thread::sleep_for(std::chrono::seconds(7));
-        std::this_thread::sleep_for(std::chrono::hours(1));
+        LOG(INFO) << "config log sucess!";
+    }
+    else
+    {
+        LOG(ERROR) << "config log fail!";
     }
 }
 
@@ -556,10 +557,12 @@ int main(int argc, char *argv[])
     GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
 
     // 个人配置
-    std::thread t1(&configLog, nullptr);
-    t1.detach();
+    configLog(nullptr);
+
     ad_ao = new ad_namespace::Ad;
+
     mysqlConfig();
+
     std::thread t(&pingMysql, nullptr);
     t.detach();
 
@@ -602,9 +605,9 @@ int main(int argc, char *argv[])
     brpc::ServerOptions options;
     options.idle_timeout_sec = FLAGS_idle_timeout_s;
     // https相关
-    options.mutable_ssl_options()->default_cert.certificate = FLAGS_certificate;
-    options.mutable_ssl_options()->default_cert.private_key = FLAGS_private_key;
-    options.mutable_ssl_options()->ciphers = FLAGS_ciphers;
+    // options.mutable_ssl_options()->default_cert.certificate = FLAGS_certificate;
+    // options.mutable_ssl_options()->default_cert.private_key = FLAGS_private_key;
+    // options.mutable_ssl_options()->ciphers = FLAGS_ciphers;
     if (server.Start(FLAGS_ip_port.c_str(), &options) != 0)
     {
         LOG(ERROR) << "Fail to start HttpServer";

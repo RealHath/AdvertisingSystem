@@ -10,7 +10,7 @@
 #include "ad.h"
 // #include "mysqlSave.h"
 #include "common.h"
-#include "mysql.pb.h"
+// #include "mysql.pb.h"
 #include "user.h"
 #include "const.h"
 
@@ -25,6 +25,13 @@ extern bool initUser(string uuid); // 将用户数据加载到内存
 /////////---------------------------------------------------
 int Ad::getFundInfo(ad_proto::GetFundInfoReq &req, ad_proto::GetFundInfoResp &resp)
 {
+    if (!req.has_uuid())
+    {
+        resp.set_err(errorEnum::INPUT_ERROR);
+        resp.set_msg("输入错误");
+        return 0;
+    }
+
     // 1. 处理入参
     string uuid = req.uuid();
     auto user = getUser(uuid);
@@ -54,6 +61,13 @@ int Ad::getFundInfo(ad_proto::GetFundInfoReq &req, ad_proto::GetFundInfoResp &re
 }
 int Ad::recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp)
 {
+    if (!req.has_money() || !req.has_uuid())
+    {
+        resp.set_err(errorEnum::INPUT_ERROR);
+        resp.set_msg("输入错误");
+        return 0;
+    }
+
     // 1. 处理入参
     string uuid = req.uuid();
     double money = req.money();
@@ -86,6 +100,28 @@ int Ad::recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp)
 
     double amount = user->amount;
     double welfare = user->welfare;
+
+    if (amount > CLICK_COST)
+    {
+        user->changeAdStatus(errorEnum::ADUITED, errorEnum::CLICK);
+    }
+    if (amount > MILLE_COST / 1000)
+    {
+        user->changeAdStatus(errorEnum::ADUITED, errorEnum::MILLE);
+    }
+    if (amount > VISIT_COST)
+    {
+        user->changeAdStatus(errorEnum::ADUITED, errorEnum::VISIT);
+    }
+    if (amount > SHOP_COST)
+    {
+        user->changeAdStatus(errorEnum::ADUITED, errorEnum::SHOP);
+    }
+    if (amount > SELL_COST)
+    {
+        user->changeAdStatus(errorEnum::ADUITED, errorEnum::SELL);
+    }
+
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("充值成功");
     resp.set_uuid(uuid);
@@ -130,8 +166,30 @@ int Ad::deduction(ad_proto::DeductionReq &req, ad_proto::DeductionResp &resp)
 
 int Ad::getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp)
 {
+    if (!req.has_uuid())
+    {
+        resp.set_err(errorEnum::INPUT_ERROR);
+        resp.set_msg("输入错误");
+        return 0;
+    }
+
     // 1. 处理入参
     string uuid = req.uuid();
+
+    // 如果内存没有
+    auto user = getUser(uuid);
+    if (user == nullptr)
+    {
+        // 初始化
+        bool flag = initUser(uuid);
+        if (!flag)
+        {
+            // 如果数据库没有
+            resp.set_err(errorEnum::NO_ACCOUNT);
+            resp.set_msg("没有此账号");
+            return 0;
+        }
+    }
 
     if (true || g_countMap.find(uuid) == g_countMap.end())
     {
@@ -185,6 +243,24 @@ int Ad::getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp)
     resp.set_sellnum(count->sellNum);
     resp.set_visitnum(count->visitNum);
     resp.set_shopnum(count->shopNum);
+
+    double clickCost = 0;
+    double showCost = 0;
+    if (true)
+    {
+        char buf[2048];
+        memset(buf, 0, 2048);
+        sprintf(buf, "SELECT clickCost, showCost FROM cost WHERE uuid='%s';", uuid.c_str());
+        auto ret1 = MyDB::getInstance()->syncExecSQL(string(buf));
+
+        if (ret1.size())
+        {
+            clickCost = strtod(ret1[0]["clickCost"].c_str(), nullptr);
+            showCost = strtod(ret1[0]["showCost"].c_str(), nullptr);
+        }
+    }
+    resp.set_clickcost(clickCost);
+    resp.set_showcost(showCost);
 
     return 0;
 }

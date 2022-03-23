@@ -11,7 +11,7 @@
 #include "ad.h"
 // #include "mysqlSave.h"
 #include "common.h"
-#include "mysql.pb.h"
+// #include "mysql.pb.h"
 #include "user.h"
 #include "const.h"
 
@@ -31,6 +31,13 @@ extern bool initUser(string uuid); // 将用户数据加载到内存
 
 int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp &resp)
 {
+    if (!req.has_id())
+    {
+        resp.set_err(errorEnum::EMPTY_ADID);
+        resp.set_msg("广告id空");
+        return 0;
+    }
+
     // 1. 处理入参
     uint32_t id = req.id();
     auto ad = getAdvertise(id);
@@ -48,9 +55,19 @@ int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp 
         user = getUser(ad->uuid);
     }
 
-    user->amount -= VISIT_COST;
-    user->updateMoney(VISIT_COST * -1);
+    int a = rand() % 20 - 10;
+    double cost = VISIT_COST + a / 100.0;
+
+    // g_countMap[ad->uuid]->countAdd(ad->type);
+    user->amount -= cost;
+    user->updateMoney(cost * -1);
     ad->updateCost();
+
+    if (user->amount < cost)
+    {
+        user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
+        g_typeMap[ad->type].clear();
+    }
 
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("CPA_VISIT");
@@ -58,6 +75,13 @@ int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp 
 }
 int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &resp)
 {
+    if (!req.has_id())
+    {
+        resp.set_err(errorEnum::EMPTY_ADID);
+        resp.set_msg("广告id空");
+        return 0;
+    }
+
     // 1. 处理入参
     uint32_t id = req.id();
     auto ad = getAdvertise(id);
@@ -75,9 +99,19 @@ int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &re
         user = getUser(ad->uuid);
     }
 
-    user->amount -= SHOP_COST;
-    user->updateMoney(SHOP_COST * -1);
+    int a = rand() % 70 - 30;
+    double cost = VISIT_COST + a / 100.0;
+
+    // g_countMap[ad->uuid]->countAdd(ad->type);
+    user->amount -= cost;
+    user->updateMoney(cost * -1);
     ad->updateCost();
+
+    if (user->amount < cost)
+    {
+        user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
+        g_typeMap[ad->type].clear();
+    }
 
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("CPA_SHOP");
@@ -86,6 +120,13 @@ int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &re
 
 int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &resp)
 {
+    if (!req.has_id())
+    {
+        resp.set_err(errorEnum::EMPTY_ADID);
+        resp.set_msg("广告id空");
+        return 0;
+    }
+
     // 1. 处理入参
     uint32_t id = req.id();
     auto ad = getAdvertise(id);
@@ -103,9 +144,19 @@ int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &re
         user = getUser(ad->uuid);
     }
 
+    int a = rand() % 10 - 5;
+    double cost = VISIT_COST + a;
+
+    // g_countMap[ad->uuid]->countAdd(ad->type);
     user->amount -= SELL_COST;
     user->updateMoney(SELL_COST * -1);
     ad->updateCost();
+
+    if (user->amount < cost)
+    {
+        user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
+        g_typeMap[ad->type].clear();
+    }
 
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("CPS");
@@ -113,6 +164,13 @@ int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &re
 }
 int Ad::costPerTime(ad_proto::CostPerTimeReq &req, ad_proto::CostPerTimeResp &resp)
 {
+    if (!req.has_id())
+    {
+        resp.set_err(errorEnum::EMPTY_ADID);
+        resp.set_msg("广告id空");
+        return 0;
+    }
+
     // 1. 处理入参
     uint32_t id = req.id();
     auto ad = getAdvertise(id);
@@ -130,9 +188,16 @@ int Ad::costPerTime(ad_proto::CostPerTimeReq &req, ad_proto::CostPerTimeResp &re
         user = getUser(ad->uuid);
     }
 
+    // g_countMap[ad->uuid]->countAdd(ad->type);
     user->amount -= TIME_COST;
     user->updateMoney(TIME_COST * -1);
     ad->updateCost();
+
+    // if (user->amount < cost)
+    // {
+    //     user->changeAdStatus(errorEnum::NOT_ADUIT, ad->type);
+    g_typeMap[ad->type].clear();
+    // }
 
     resp.set_err(errorEnum::SUCCESS);
     resp.set_msg("CPT");

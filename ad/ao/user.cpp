@@ -1,5 +1,6 @@
 #include "user.h"
 #include "sql.h"
+#include "const.h"
 #include <butil/logging.h>
 
 using namespace mysqlpp;
@@ -79,6 +80,33 @@ namespace ad_namespace
         }
     }
 
+    // 修改广告状态
+    void ADUser::changeAdStatus(uint32_t status, uint32_t type)
+    {
+        auto conn = MyDB::getInstance()->getConnection();
+        mysqlpp::Transaction
+            tran(*conn, Transaction::IsolationLevel::repeatable_read,
+                 Transaction::IsolationScope::session);
+
+        try
+        {
+            char buf[1024];
+            sprintf(buf, "UPDATE ad SET status=%u WHERE uuid='%s' AND type=%u;",
+                    status, uuid.c_str(), type);
+            MyDB::getInstance()->asyncExecSQL(string(buf));
+
+            // memset(buf, 0, 1024);
+            // sprintf(buf, "UPDATE adAction SET status=%u WHERE uuid='%s';",
+            //         status, uuid.c_str());
+            // MyDB::getInstance()->asyncExecSQL(string(buf));
+        }
+        catch (std::exception &e)
+        {
+            LOG(ERROR) << "updateMoney rollback";
+            tran.rollback();
+        }
+    }
+
     //--------------------
 
     Advertise::Advertise()
@@ -121,28 +149,28 @@ namespace ad_namespace
             }
             else if (type == errorEnum::ADType::VISIT)
             {
-                sprintf(buf, "INSERT INTO adFlow(id,uuid,visit,shop,sell,updateTime) VALUES(%u,'%s',0,0,0,%lu);",
+                sprintf(buf, "INSERT INTO adAction(id,uuid,visit,shop,sell,updateTime) VALUES(%u,'%s',0,0,0,%lu);",
                         id, uuid.c_str(), time(NULL));
                 sql = string(buf);
             }
             else if (type == errorEnum::ADType::SHOP)
             {
-                sprintf(buf, "INSERT INTO adFlow(id,uuid,visit,shop,sell,updateTime) VALUES(%u,'%s',0,0,0,%lu);",
+                sprintf(buf, "INSERT INTO adAction(id,uuid,visit,shop,sell,updateTime) VALUES(%u,'%s',0,0,0,%lu);",
                         id, uuid.c_str(), time(NULL));
                 sql = string(buf);
             }
             else if (type == errorEnum::ADType::SELL)
             {
-                sprintf(buf, "INSERT INTO adFlow(id,uuid,visit,shop,sell,updateTime) VALUES(%u,'%s',0,0,0,%lu);",
+                sprintf(buf, "INSERT INTO adAction(id,uuid,visit,shop,sell,updateTime) VALUES(%u,'%s',0,0,0,%lu);",
                         id, uuid.c_str(), time(NULL));
                 sql = string(buf);
             }
-            else if (type == errorEnum::ADType::TIME)
-            {
-                sprintf(buf, "INSERT INTO adFlow(id,uuid,time,isEnd) VALUES(%u,'%s',%u,%u);",
-                        id, uuid.c_str(), 3600, 0);
-                sql = string(buf);
-            }
+            // else if (type == errorEnum::ADType::TIME)
+            // {
+            //     sprintf(buf, "INSERT INTO adFlow(id,uuid,time,isEnd) VALUES(%u,'%s',%u,%u);",
+            //             id, uuid.c_str(), 3600, 0);
+            //     sql = string(buf);
+            // }
             else
             {
                 sql.clear();
@@ -161,7 +189,7 @@ namespace ad_namespace
         }
     }
 
-    void Advertise::updateCost()
+    void Advertise::updateCost(double cost)
     {
         auto conn = MyDB::getInstance()->getConnection();
         mysqlpp::Transaction
@@ -171,43 +199,92 @@ namespace ad_namespace
         try
         {
             char buf[2048];
+            memset(buf, 0, 2048);
             string sql;
             if (type == errorEnum::ADType::CLICK)
             {
-                sprintf(buf, "UPDATE adFlow SET 'click' = 'click'+1,'updateTime' = %lu WHERE id=%u AND uuid='%s';",
+                sprintf(buf, "UPDATE adFlow SET click = click+1,updateTime = %lu WHERE id=%u AND uuid='%s';",
                         time(NULL), id, uuid.c_str());
                 sql = string(buf);
             }
             else if (type == errorEnum::ADType::MILLE)
             {
-                sprintf(buf, "UPDATE adFlow SET 'exposure' = 'exposure'+1,'updateTime' = %lu WHERE id=%u AND uuid='%s';",
+                sprintf(buf, "UPDATE adFlow SET exposure = exposure+1,updateTime = %lu WHERE id=%u AND uuid='%s';",
                         time(NULL), id, uuid.c_str());
                 sql = string(buf);
             }
             else if (type == errorEnum::ADType::VISIT)
             {
-                sprintf(buf, "UPDATE adAction SET 'visit' = 'visit'+1,'updateTime' = %lu WHERE id=%u AND uuid='%s';",
+                sprintf(buf, "UPDATE adAction SET visit = visit+1,updateTime = %lu WHERE id=%u AND uuid='%s';",
                         time(NULL), id, uuid.c_str());
                 sql = string(buf);
             }
             else if (type == errorEnum::ADType::SHOP)
             {
-                sprintf(buf, "UPDATE adAction SET 'shop' = 'shop'+1,'updateTime' = %lu WHERE id=%u AND uuid='%s';",
+                sprintf(buf, "UPDATE adAction SET shop = shop+1,updateTime = %lu WHERE id=%u AND uuid='%s';",
                         time(NULL), id, uuid.c_str());
                 sql = string(buf);
             }
             else if (type == errorEnum::ADType::SELL)
             {
-                sprintf(buf, "UPDATE adAction SET 'sell' = 'sell'+1,'updateTime' = %lu WHERE id=%u AND uuid='%s';",
+                sprintf(buf, "UPDATE adAction SET sell = sell+1,updateTime = %lu WHERE id=%u AND uuid='%s';",
                         time(NULL), id, uuid.c_str());
                 sql = string(buf);
             }
-            else if (type == errorEnum::ADType::TIME)
+            // else if (type == errorEnum::ADType::TIME)
+            // {
+            //     sprintf(buf, "UPDATE adFlow SET isEnd = 2 WHERE id=%u AND uuid='%s';",
+            //             id, uuid.c_str());
+            //     sql = string(buf);
+            // }
+            else
             {
-                sprintf(buf, "UPDATE adFlow SET 'isEnd' = 2 WHERE id=%u AND uuid='%s';",
-                        id, uuid.c_str());
+                sql.clear();
+            }
+
+            if (sql.size())
+            {
+                MyDB::getInstance()->asyncExecSQL(sql);
+            }
+
+            memset(buf, 0, 2048);
+            // string sql;
+            if (type == errorEnum::ADType::CLICK)
+            {
+                sprintf(buf, "UPDATE cost SET clickCost = clickCost+%f WHERE uuid='%s';",
+                        cost, uuid.c_str());
                 sql = string(buf);
             }
+            else if (type == errorEnum::ADType::MILLE)
+            {
+                sprintf(buf, "UPDATE cost SET showCost = showCost+%f WHERE uuid='%s';",
+                        cost, uuid.c_str());
+                sql = string(buf);
+            }
+            else if (type == errorEnum::ADType::VISIT)
+            {
+                sprintf(buf, "UPDATE cost SET visitCost = visitCost+%f WHERE uuid='%s';",
+                        cost, uuid.c_str());
+                sql = string(buf);
+            }
+            else if (type == errorEnum::ADType::SHOP)
+            {
+                sprintf(buf, "UPDATE cost SET shopCost = shopCost+%f WHERE uuid='%s';",
+                        cost, uuid.c_str());
+                sql = string(buf);
+            }
+            else if (type == errorEnum::ADType::SELL)
+            {
+                sprintf(buf, "UPDATE cost SET sellCost = sellCost+%f WHERE uuid='%s';",
+                        cost, uuid.c_str());
+                sql = string(buf);
+            }
+            // else if (type == errorEnum::ADType::TIME)
+            // {
+            //     sprintf(buf, "UPDATE cost SET clickCost = clickCost+%f WHERE uuid='%s';",
+            //             uuid.c_str());
+            //     sql = string(buf);
+            // }
             else
             {
                 sql.clear();
@@ -235,5 +312,39 @@ namespace ad_namespace
     ADCount::ADCount(double costs, uint64_t clickNum, uint64_t showNum, uint64_t sellNum, uint64_t visitNum, uint64_t shopNum)
         : costs(costs), clickNum(clickNum), showNum(showNum), sellNum(sellNum), visitNum(visitNum), shopNum(shopNum)
     {
+        // clickCost = clickNum
+    }
+
+    void ADCount::countAdd(uint32_t type)
+    {
+        switch (type)
+        {
+        case errorEnum::CLICK:
+            this->clickNum++;
+            break;
+        case errorEnum::MILLE:
+            this->showNum++;
+            break;
+        case errorEnum::VISIT:
+            this->visitNum++;
+            break;
+        case errorEnum::SELL:
+            this->sellNum++;
+            break;
+        case errorEnum::SHOP:
+            this->shopNum++;
+            break;
+            // case errorEnum::TIME:
+            //     this->clickNum++;
+            //     break;
+
+        default:
+            break;
+        }
+
+        // this->costs = clickNum * CLICK_COST + (showNum / 1000.0) * MILLE_COST +
+        //               sellNum * SELL_COST + visitNum * VISIT_COST + shopNum * SHOP_COST;
+
+        // cout << "this->costs: " << this->costs;
     }
 }

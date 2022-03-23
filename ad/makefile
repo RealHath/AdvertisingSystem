@@ -8,7 +8,7 @@ DIRS = $(notdir $(SRCS))
 OBJS = $(patsubst %.cpp, %.o, $(DIRS))
 
 # proto源文件
-PROTOFILE = $(wildcard $(WORKPATH)/proto/*.proto)
+PROTOFILE = $(wildcard $(WORKPATH)/proto/ad.proto $(WORKPATH)/proto/errorEnum.proto)
 PROTOSRCS = $(wildcard *.pb.cc)
 PROTODIRS = $(notdir $(PROTOSRCS))
 PROTOOBJS = $(patsubst %.pb.cc, %.pb.o, $(PROTODIRS))
