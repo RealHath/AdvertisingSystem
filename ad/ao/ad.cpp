@@ -19,6 +19,7 @@
 // #include "mysql.pb.h"
 #include "user.h"
 #include "const.h"
+#include "md5.h"
 
 using namespace std;
 using namespace ad_namespace;
@@ -198,7 +199,7 @@ namespace ad_namespace
         {
             status = errorEnum::ADUITED;
         }
-        else if (type == errorEnum::MILLE && user->amount > MILLE_COST)
+        else if (type == errorEnum::MILLE && user->amount > MILLE_COST / 1000.0)
         {
             status = errorEnum::ADUITED;
         }
@@ -215,7 +216,21 @@ namespace ad_namespace
             status = errorEnum::ADUITED;
         }
 
+        // get参数扰乱
+        char param[1024];
         uint32_t id = generateAdId();
+        string noice = MD5(string(common::genUUID())).md5();
+        if (url.rfind('?') != string::npos)
+        {
+            sprintf(param, "adId=%u&noice=%s", id, noice.c_str());
+            url.append(string(param));
+        }
+        else
+        {
+            sprintf(param, "?id=%u&noice=%s", id, noice.c_str());
+            url.append(string(param));
+        }
+
         Advertise ad(id, uuid, imageUrl, url, content, type, status);
         ad_ptr ptr = make_shared<Advertise>(ad);
         ptr->insertAd();

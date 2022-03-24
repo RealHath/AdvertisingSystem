@@ -34,13 +34,13 @@ namespace ad_namespace
         try
         {
             char buf[2048];
-            sprintf(buf, "UPDATE money SET amount=%lf, welfare=%lf, updateTime=%lu WHERE uuid='%s';",
+            sprintf(buf, "UPDATE money SET amount=%.5lf, welfare=%.5lf, updateTime=%lu WHERE uuid='%s';",
                     amount, welfare, time(NULL), uuid.c_str());
             string sql(buf);
             MyDB::getInstance()->asyncExecSQL(sql);
 
             memset(buf, 0, 2048);
-            sprintf(buf, "INSERT INTO recharge(id,uuid,increment,updateTime) VALUES(null,'%s',%lf,%lu);",
+            sprintf(buf, "INSERT INTO recharge(id,uuid,increment,updateTime) VALUES(null,'%s',%.5lf,%lu);",
                     uuid.c_str(), increment, time(NULL));
             MyDB::getInstance()->asyncExecSQL(string(buf));
             tran.commit();
@@ -67,7 +67,7 @@ namespace ad_namespace
             string sql(buf);
             MyDB::getInstance()->asyncExecSQL(sql);
             memset(buf, 0, 2048);
-            sprintf(buf, "INSERT INTO money(id,uuid,amount,welfare,updateTime) VALUES(null,'%s',%lf,%lf,%lu);",
+            sprintf(buf, "INSERT INTO money(id,uuid,amount,welfare,updateTime) VALUES(null,'%s',%.5lf,%.5lf,%lu);",
                     uuid.c_str(), amount, welfare, time(NULL));
             sql = string(buf);
             MyDB::getInstance()->asyncExecSQL(sql);
@@ -114,7 +114,7 @@ namespace ad_namespace
     Advertise::Advertise()
     {
     }
-    Advertise::Advertise(uint32_t id, string uuid, string imageUrl, string url, string content, uint32_t type, uint32_t status = errorEnum::NOT_ADUIT)
+    Advertise::Advertise(uint32_t id, string uuid, string imageUrl, string url, string content, uint32_t type, uint32_t status)
         : id(id), uuid(uuid), imageUrl(imageUrl), url(url), content(content), type(type), status(status)
     {
         this->lDt = time(NULL);
