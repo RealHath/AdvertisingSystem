@@ -222,7 +222,7 @@ namespace ad_namespace
         string noice = MD5(string(common::genUUID())).md5();
         if (url.rfind('?') != string::npos)
         {
-            sprintf(param, "adId=%u&noice=%s", id, noice.c_str());
+            sprintf(param, "&adId=%u&noice=%s", id, noice.c_str());
             url.append(string(param));
         }
         else
