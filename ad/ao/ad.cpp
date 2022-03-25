@@ -9,7 +9,8 @@
 #include <algorithm>
 #include <mutex>
 #include <random>
-#include <iomanip>
+#include <queue>
+#include <cmath>
 
 #include "sql.h"
 #include "errorEnum.pb.h"
@@ -38,6 +39,18 @@ DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 // typedef std::unordered_map<uint64_t, ad_ptr> ad_list;
 // static std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
 // static std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
+
+// extern std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
+// extern std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
+// extern std::unordered_map<uint32_t, ad_ptr> g_adMap;     // 用户广告映射表
+// extern std::unordered_map<std::string, count_ptr> g_countMap; // 统计表
+// extern std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
+
+std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
+std::unordered_map<uint32_t, ad_ptr> g_adMap;           // 用户广告映射表
+std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
+std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
+std::unordered_map<std::string, count_ptr> g_countMap;  // 统计表
 
 std::mutex init_mtx;
 // default_random_engine e(time(NULL));
@@ -93,7 +106,7 @@ namespace ad_namespace
         int a = rand() % 20 - 10;
         double cost = CLICK_COST + a / 100.0;
 
-        // g_countMap[ad->uuid]->countAdd(ad->type);
+        g_countMap[ad->uuid]->countAdd(ad->type);
         user->amount -= cost;
         user->updateMoney(cost * -1);
         ad->updateCost(cost);
@@ -151,7 +164,7 @@ namespace ad_namespace
         int a = rand() % 10 - 5;
         double cost = (MILLE_COST + a) / 1000;
 
-        // g_countMap[ad->uuid]->countAdd(ad->type);
+        g_countMap[ad->uuid]->countAdd(ad->type);
         user->amount -= cost;
         user->updateMoney(cost / 1000 * -1);
         ad->updateCost(cost);
@@ -277,6 +290,7 @@ namespace ad_namespace
         }
 
         if (true || g_typeMap[type].empty())
+        // if (g_typeMap[type].empty())
         {
             // g_AUMap.clear();
             g_typeMap[type].clear();
@@ -360,12 +374,19 @@ namespace ad_namespace
     // 获取广告时非重复
     void Ad::generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result)
     {
+        priority_queue<shared_ptr<Advertise>> q;
+
         size_t len = src.size();
         if (rand_count >= len)
         {
             result = src;
             return;
         }
+
+        // for (size_t i = 0; i < src.size(); i++)
+        // {
+        //     double weight =
+        // }
 
         for (size_t i = 0; i < rand_count; i++)
         {

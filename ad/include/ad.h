@@ -49,20 +49,13 @@ namespace ad_namespace
         // void init();
         void generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result); //不重复随机生成
         bool checkType(uint32_t type);                                                                                       // 验证type是否合法
+        bool initCount(string uuid);                                                                                         // 初始化统计
     };
 }
 
-typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;     // 用户类指针
-static std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
-
-typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr; // 广告类指针
-static std::unordered_map<uint32_t, ad_ptr> g_adMap;     // 用户广告映射表
-
-typedef std::unordered_map<uint32_t, ad_ptr> ad_list;          // 广告id映射广告指针
-static std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
-static std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
-
-typedef std::shared_ptr<ad_namespace::ADCount> count_ptr;     // 统计类指针
-static std::unordered_map<std::string, count_ptr> g_countMap; // 统计表
+typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;   // 用户类指针
+typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;  // 广告类指针
+typedef std::unordered_map<uint32_t, ad_ptr> ad_list;     // 广告id映射广告指针
+typedef std::shared_ptr<ad_namespace::ADCount> count_ptr; // 统计类指针
 
 #endif

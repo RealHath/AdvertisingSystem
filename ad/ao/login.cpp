@@ -19,13 +19,19 @@ using namespace ad_namespace;
 // typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;
 // typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
 // typedef std::unordered_map<uint64_t, ad_ptr> ad_list;
-// extern std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
-// extern std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
+// std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
+// std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
 
-extern std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
-extern std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
-extern std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
-extern bool initUser(string uuid); // 将用户数据加载到内存
+// std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
+// std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
+// std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
+// bool initUser(string uuid); // 将用户数据加载到内存
+
+extern std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
+extern std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
+extern std::unordered_map<uint32_t, ad_ptr> g_adMap;           // 用户广告映射表
+extern std::unordered_map<std::string, count_ptr> g_countMap;  // 统计表
+extern std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
 
 //----------------------------------------------------------
 int Ad::login(ad_proto::LoginReq &req, ad_proto::LoginResp &resp)

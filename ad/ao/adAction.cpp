@@ -21,13 +21,18 @@ using namespace ad_namespace;
 // typedef std::shared_ptr<ad_namespace::ADUser> user_ptr;
 // typedef std::shared_ptr<ad_namespace::Advertise> ad_ptr;
 // typedef std::unordered_map<uint64_t, ad_ptr> ad_list;
-// extern std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
-// extern std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
+// std::unordered_map<std::string, user_ptr> g_userMap; // 用户映射表
+// std::unordered_map<std::string, ad_list> g_AUMap;    // 用户广告映射表
 
-extern std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
-extern std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
-extern std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
-extern bool initUser(string uuid); // 将用户数据加载到内存
+// std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
+// std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
+// std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
+// bool initUser(string uuid); // 将用户数据加载到内存
+
+extern std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
+extern std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
+extern std::unordered_map<uint32_t, ad_ptr> g_adMap;           // 用户广告映射表
+extern std::unordered_map<std::string, count_ptr> g_countMap;  // 统计表
 
 int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp &resp)
 {
@@ -48,12 +53,12 @@ int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp 
         return 0;
     }
 
-    if (ad->type != errorEnum::VISIT)
-    {
-        resp.set_err(errorEnum::TYPE_NE_ID);
-        resp.set_msg("广告id类型不匹配接口");
-        return 0;
-    }
+    // if (ad->type != errorEnum::VISIT)
+    // {
+    //     resp.set_err(errorEnum::TYPE_NE_ID);
+    //     resp.set_msg("广告id类型不匹配接口");
+    //     return 0;
+    // }
 
     if (ad->status == errorEnum::NOT_ADUIT)
     {
@@ -72,7 +77,7 @@ int Ad::costPerVisit(ad_proto::CostPerVisitReq &req, ad_proto::CostPerVisitResp 
     int a = rand() % 20 - 10;
     double cost = VISIT_COST + a / 100.0;
 
-    // g_countMap[ad->uuid]->countAdd(ad->type);
+    g_countMap[ad->uuid]->countAdd(ad->type);
     user->amount -= cost;
     user->updateMoney(cost * -1);
     ad->updateCost(cost);
@@ -107,12 +112,12 @@ int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &re
         return 0;
     }
 
-    if (ad->type != errorEnum::SHOP)
-    {
-        resp.set_err(errorEnum::TYPE_NE_ID);
-        resp.set_msg("广告id类型不匹配接口");
-        return 0;
-    }
+    // if (ad->type != errorEnum::SHOP)
+    // {
+    //     resp.set_err(errorEnum::TYPE_NE_ID);
+    //     resp.set_msg("广告id类型不匹配接口");
+    //     return 0;
+    // }
 
     if (ad->status == errorEnum::NOT_ADUIT)
     {
@@ -131,7 +136,7 @@ int Ad::costPerShop(ad_proto::CostPerShopReq &req, ad_proto::CostPerShopResp &re
     int a = rand() % 70 - 30;
     double cost = SHOP_COST + a / 100.0;
 
-    // g_countMap[ad->uuid]->countAdd(ad->type);
+    g_countMap[ad->uuid]->countAdd(ad->type);
     user->amount -= cost;
     user->updateMoney(cost * -1);
     ad->updateCost(cost);
@@ -167,12 +172,12 @@ int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &re
         return 0;
     }
 
-    if (ad->type != errorEnum::SELL)
-    {
-        resp.set_err(errorEnum::TYPE_NE_ID);
-        resp.set_msg("广告id类型不匹配接口");
-        return 0;
-    }
+    // if (ad->type != errorEnum::SELL)
+    // {
+    //     resp.set_err(errorEnum::TYPE_NE_ID);
+    //     resp.set_msg("广告id类型不匹配接口");
+    //     return 0;
+    // }
 
     if (ad->status == errorEnum::NOT_ADUIT)
     {
@@ -191,7 +196,7 @@ int Ad::costPerSell(ad_proto::CostPerSellReq &req, ad_proto::CostPerSellResp &re
     int a = rand() % 10 - 5;
     double cost = SELL_COST + a;
 
-    // g_countMap[ad->uuid]->countAdd(ad->type);
+    g_countMap[ad->uuid]->countAdd(ad->type);
     user->amount -= cost;
     user->updateMoney(cost * -1);
     ad->updateCost(cost);
@@ -233,7 +238,7 @@ int Ad::costPerTime(ad_proto::CostPerTimeReq &req, ad_proto::CostPerTimeResp &re
         user = getUser(ad->uuid);
     }
 
-    // g_countMap[ad->uuid]->countAdd(ad->type);
+    g_countMap[ad->uuid]->countAdd(ad->type);
     user->amount -= TIME_COST;
     user->updateMoney(TIME_COST * -1);
     ad->updateCost();

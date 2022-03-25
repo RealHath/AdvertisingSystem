@@ -17,12 +17,15 @@
 using namespace std;
 using namespace ad_namespace;
 
-extern std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
-extern std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
-extern std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
-extern bool initUser(string uuid); // 将用户数据加载到内存
+// std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
+// std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
+// std::shared_ptr<ad_namespace::Advertise> getAdvertise(string uuid, uint64_t id);
+// bool initUser(string uuid); // 将用户数据加载到内存
 
-// extern static std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
+extern std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
+extern std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
+extern std::unordered_map<uint32_t, ad_ptr> g_adMap;           // 用户广告映射表
+extern std::unordered_map<std::string, count_ptr> g_countMap;  // 统计表
 
 /////////---------------------------------------------------
 int Ad::getFundInfo(ad_proto::GetFundInfoReq &req, ad_proto::GetFundInfoResp &resp)
@@ -131,12 +134,13 @@ int Ad::recharge(ad_proto::RechargeReq &req, ad_proto::RechargeResp &resp)
         user->changeAdStatus(errorEnum::ADUITED, errorEnum::SELL);
     }
 
-    // 无效
     // 将内存的ad状态修改为过审
     for (auto &type : res)
     {
+        // cout << g_typeMap.size() << "    "<<g_typeMap[type].size()<<endl;
         for (auto &ptr : g_typeMap[type])
         {
+            // cout << "ffffff"<<endl;
             if (user->uuid == ptr->uuid)
             {
                 ptr->status = errorEnum::ADUITED;
@@ -213,7 +217,8 @@ int Ad::getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp)
         }
     }
 
-    if (true || g_countMap.find(uuid) == g_countMap.end())
+    // if (true || g_countMap.find(uuid) == g_countMap.end())
+    if (g_countMap.find(uuid) == g_countMap.end())
     {
         char buf[2048];
         memset(buf, 0, 2048);
