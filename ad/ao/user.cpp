@@ -47,6 +47,7 @@ namespace ad_namespace
         }
         catch (std::exception &e)
         {
+            LOG(ERROR) << "updateMoney rollback";
             tran.rollback();
         }
     }
@@ -74,7 +75,7 @@ namespace ad_namespace
 
             memset(buf, 0, 2048);
             sprintf(buf, "INSERT INTO cost(uuid,clickCost,showCost,visitCost,shopCost,sellCost) VALUES('%s',%.5lf,%.5lf,%.5lf,%.5lf,%.5lf);",
-                    uuid.c_str(), 0, 0, 0, 0, 0);
+                    uuid.c_str(), 0.0, 0.0, 0.0, 0.0, 0.0);
             sql = string(buf);
             MyDB::getInstance()->asyncExecSQL(sql);
 
@@ -82,7 +83,7 @@ namespace ad_namespace
         }
         catch (std::exception &e)
         {
-            LOG(ERROR) << "updateMoney rollback";
+            LOG(ERROR) << "insertUser rollback";
             tran.rollback();
         }
     }
@@ -111,7 +112,7 @@ namespace ad_namespace
         }
         catch (std::exception &e)
         {
-            LOG(ERROR) << "updateMoney rollback";
+            LOG(ERROR) << "changeAdStatus rollback";
             tran.rollback();
         }
     }
