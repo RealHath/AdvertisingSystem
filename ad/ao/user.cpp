@@ -71,6 +71,13 @@ namespace ad_namespace
                     uuid.c_str(), amount, welfare, time(NULL));
             sql = string(buf);
             MyDB::getInstance()->asyncExecSQL(sql);
+
+            memset(buf, 0, 2048);
+            sprintf(buf, "INSERT INTO cost(uuid,clickCost,showCost,visitCost,shopCost,sellCost) VALUES('%s',%.5lf,%.5lf,%.5lf,%.5lf,%.5lf);",
+                    uuid.c_str(), 0, 0, 0, 0, 0);
+            sql = string(buf);
+            MyDB::getInstance()->asyncExecSQL(sql);
+
             tran.commit();
         }
         catch (std::exception &e)
