@@ -39,17 +39,16 @@ namespace ad_namespace
         int getCount(ad_proto::GetCountReq &req, ad_proto::GetCountResp &resp);          // 获取统计
 
     private:
-        // void invoke(mysql_proto::SaveReq &request, mysql_proto::SaveResp &response);
-        // void reflectUser(std::unordered_map<string, string> &data);
         std::shared_ptr<ad_namespace::ADUser> getUser(string uuid);
         // std::shared_ptr<ad_namespace::ADUser> getAdList(string uuid);
         std::shared_ptr<ad_namespace::Advertise> getAdvertise(uint32_t id);
         bool initUser(string uuid); // 将用户数据加载到内存
         uint32_t generateAdId();    // 生成广告id
         // void init();
-        void generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result); //不重复随机生成
-        bool checkType(uint32_t type);                                                                                       // 验证type是否合法
-        bool initCount(string uuid);                                                                                         // 初始化统计
+        void generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result, uint32_t type); //不重复随机生成
+        bool checkType(uint32_t type);                                                                                                      // 验证type是否合法
+        bool initCount(string uuid);                                                                                                        // 初始化统计
+        double getCostByADType(uint32_t type);
     };
 }
 

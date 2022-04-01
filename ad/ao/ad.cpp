@@ -46,11 +46,12 @@ DEFINE_int32(interval_ms, 1000, "Milliseconds between consecutive requests");
 // extern std::unordered_map<std::string, count_ptr> g_countMap; // 统计表
 // extern std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
 
-std::unordered_map<std::string, user_ptr> g_userMap;    // 用户映射表
-std::unordered_map<uint32_t, ad_ptr> g_adMap;           // 用户广告映射表
-std::unordered_map<std::string, ad_list> g_AUMap;       // 用户广告映射表
-std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap; // 类型广告映射表
-std::unordered_map<std::string, count_ptr> g_countMap;  // 统计表
+std::unordered_map<std::string, user_ptr> g_userMap;                         // 用户映射表
+std::unordered_map<uint32_t, ad_ptr> g_adMap;                                // 用户广告映射表
+std::unordered_map<std::string, ad_list> g_AUMap;                            // 用户广告映射表
+std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap;                      // 类型广告映射表
+std::unordered_map<std::string, count_ptr> g_countMap;                       // 统计表
+std::unordered_map<uint32_t, std::unordered_map<uint32_t, int>> g_weightMap; //权重表
 
 std::mutex init_mtx;
 // default_random_engine e(time(NULL));
@@ -289,11 +290,12 @@ namespace ad_namespace
             return 0;
         }
 
-        if (true || g_typeMap[type].empty())
+        if (g_typeMap[type].empty())
         // if (g_typeMap[type].empty())
         {
             // g_AUMap.clear();
             g_typeMap[type].clear();
+            g_weightMap[type].clear();
 
             char buf[2048];
             sprintf(buf, "SELECT * FROM ad WHERE type=%u AND status=%u;", type, errorEnum::ADUITED);
@@ -314,8 +316,12 @@ namespace ad_namespace
                 g_AUMap[uuid].insert(make_pair(id, ptr));
                 g_typeMap[type].push_back(ptr);
                 g_adMap[id] = ptr;
+
+                // weight
+                g_weightMap[type].insert(make_pair(id, 8192));
             }
             LOG(INFO) << "g_typeMap[type].size(): " << g_typeMap[type].size();
+            LOG(INFO) << "g_weightMap[type].size(): " << g_weightMap[type].size();
         }
         if (g_typeMap[type].size() <= 0)
         {
@@ -326,9 +332,9 @@ namespace ad_namespace
         // 打乱
         // std::shuffle(g_typeMap[type].begin(), g_typeMap[type].end());
 
-        // 随机取出一个广告
+        // 随机取出广告
         vector<shared_ptr<Advertise>> result;
-        generateRandomId(g_typeMap[type], num, result);
+        generateRandomId(g_typeMap[type], num, result, type);
         for (auto &ad : result)
         {
             // size_t randVal = rand() % g_typeMap[type].size();
@@ -372,7 +378,7 @@ namespace ad_namespace
     }
 
     // 获取广告时非重复
-    void Ad::generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result)
+    void Ad::generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result, uint32_t type)
     {
         priority_queue<shared_ptr<Advertise>> q;
 
@@ -383,25 +389,120 @@ namespace ad_namespace
             return;
         }
 
-        // for (size_t i = 0; i < src.size(); i++)
+        /**
+         * @brief 方案1：随机分配，公平
+         *
+         */
+        // for (size_t i = 0; i < rand_count; i++)
         // {
-        //     double weight =
+        //     size_t j = rand() % len;
+        //     auto tmp = src[i];
+        //     src[i] = src[j];
+        //     src[j] = tmp;
         // }
 
+        /**
+         * @brief Balance. 更适用于广告出价比较接近的场景
+         * 方案2：res = 单位消耗/总金额，取res值最小的几个。
+         * 尽量使得所有⼴告都保持匀速投放
+         */
+        // auto fun = [&](shared_ptr<Advertise> &a, shared_ptr<Advertise> &b)
+        // {
+        //     auto userA = getUser(a->uuid);
+        //     auto userB = getUser(b->uuid);
+
+        //     double Aamount = userA->amount;
+        //     double Bamount = userB->amount;
+
+        //     // return (CLICK_COST / Aamount) < (CLICK_COST / Bamount)
+        //     return Aamount > Bamount;
+        // };
+        // std::sort(src.begin(), src.end(), fun);
+
+        /**
+         * @brief 方案3：贪心，出价高的先展示
+         *
+         *
+         */
+        // auto fun = [&](shared_ptr<Advertise> &a, shared_ptr<Advertise> &b)
+        // {
+        //     double priceA = getCostByADType(a->type);
+        //     double priceB = getCostByADType(b->type);
+
+        //     return priceA > priceB;
+        // };
+        // std::sort(src.begin(), src.end(), fun);
+
+        /**
+         * @brief
+         * 方案4：res = 单位消耗/总金额，广告主可以动态调节总预算
+         * 权衡函数：f(res) = 1 - e^(res - 1)
+         * 缩放出价：出价 * fun(res)
+         * 当
+         */
+
+        /**
+         * @brief 方案5：权重分配
+         *
+         */
+        int total = 0;
+        for (auto &iter : g_weightMap[type])
+        {
+            total += iter.second;
+        }
+        // 随机
+        std::set<uint32_t> s;
+        int randVal = (rand() % total) + 1;
+        // 取rand_count个
         for (size_t i = 0; i < rand_count; i++)
         {
-            size_t j = rand() % len;
-            auto tmp = src[i];
-            src[i] = src[j];
-            src[j] = tmp;
+            int tmpVal = 0;
+            // 遍历广告列表
+            for (auto &ptr : src)
+            {
+                // 如果没有取过
+                if (!s.count(ptr->id))
+                {
+                    tmpVal += g_weightMap[type][ptr->id];
+                    if (tmpVal >= randVal)
+                    {
+                        result.push_back(ptr);
+                        g_weightMap[type][ptr->id] -= 128;
+                        s.insert(ptr->id);
+
+                        if (g_weightMap[type][ptr->id] <= 0)
+                        {
+                            g_weightMap[type][ptr->id] = 0;
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+        // 处理没随机到的
+        for (auto &iter : g_weightMap[type])
+        {
+            // cout << "id: " << iter.first << "  weight: " << iter.second << endl;
+            if (!s.count(iter.first))
+            {
+                if ((iter.second + 256) >= RAND_MAX / 2)
+                {
+                    iter.second = RAND_MAX / 2;
+                    continue;
+                }
+
+                iter.second += 256;
+            }
         }
 
-        result.clear();
-        result.reserve(rand_count);
-        for (size_t i = 0; i < rand_count; i++)
-        {
-            result.push_back(src[i]);
-        }
+        //---------------------
+        // result.clear();
+        // result.reserve(rand_count);
+        // for (size_t i = 0; i < rand_count; i++)
+        // {
+        //     result.push_back(src[i]);
+        // }
 
         return;
     }
@@ -412,6 +513,16 @@ namespace ad_namespace
         if (g_userMap.find(uuid) != g_userMap.end())
         {
             LOG(INFO) << "getUser: " << uuid << "g_userMap.size()" << g_userMap.size();
+            return g_userMap[uuid];
+        }
+        else
+        {
+            initUser(uuid);
+        }
+
+        // 再次查找
+        if (g_userMap.find(uuid) != g_userMap.end())
+        {
             return g_userMap[uuid];
         }
         return nullptr;
@@ -578,5 +689,32 @@ namespace ad_namespace
         }
 
         return false;
+    }
+
+    double Ad::getCostByADType(uint32_t type)
+    {
+        if (type == errorEnum::CLICK)
+        {
+            return CLICK_COST;
+        }
+        else if (type == errorEnum::MILLE)
+        {
+            return MILLE_COST / 1000;
+        }
+        else if (type == errorEnum::VISIT)
+        {
+            return VISIT_COST;
+        }
+        else if (type == errorEnum::SHOP)
+        {
+            return SHOP_COST;
+        }
+        else if (type == errorEnum::SELL)
+        {
+            return SELL_COST;
+        }
+
+        LOG(ERROR) << "unknow ad type: " << type;
+        return 0;
     }
 }
