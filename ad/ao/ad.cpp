@@ -11,6 +11,7 @@
 #include <random>
 #include <queue>
 #include <cmath>
+#include <map>
 
 #include "sql.h"
 #include "errorEnum.pb.h"
@@ -52,6 +53,8 @@ std::unordered_map<std::string, ad_list> g_AUMap;                            // 
 std::unordered_map<uint32_t, vector<ad_ptr>> g_typeMap;                      // 类型广告映射表
 std::unordered_map<std::string, count_ptr> g_countMap;                       // 统计表
 std::unordered_map<uint32_t, std::unordered_map<uint32_t, int>> g_weightMap; //权重表
+// std::unordered_map<uint32_t, uint32_t> numMap;
+// priority_queue<shared_ptr<Advertise>> q;
 
 std::mutex init_mtx;
 // default_random_engine e(time(NULL));
@@ -233,6 +236,7 @@ namespace ad_namespace
         // get参数扰乱
         char param[1024];
         uint32_t id = generateAdId();
+        // uint32_t id = 4;
         string noice = MD5(string(common::genUUID())).md5();
         if (url.rfind('?') != string::npos)
         {
@@ -290,7 +294,7 @@ namespace ad_namespace
             return 0;
         }
 
-        if (g_typeMap[type].empty())
+        if (true || g_typeMap[type].empty())
         // if (g_typeMap[type].empty())
         {
             // g_AUMap.clear();
@@ -313,12 +317,12 @@ namespace ad_namespace
 
                 Advertise ad(id, uuid, imageUrl, url, content, type, status);
                 auto ptr = make_shared<Advertise>(ad);
-                g_AUMap[uuid].insert(make_pair(id, ptr));
+                // g_AUMap[uuid].insert(make_pair(id, ptr));
                 g_typeMap[type].push_back(ptr);
                 g_adMap[id] = ptr;
 
                 // weight
-                g_weightMap[type].insert(make_pair(id, 8192));
+                g_weightMap[type].insert(make_pair(id, 2048));
             }
             LOG(INFO) << "g_typeMap[type].size(): " << g_typeMap[type].size();
             LOG(INFO) << "g_weightMap[type].size(): " << g_weightMap[type].size();
@@ -334,8 +338,8 @@ namespace ad_namespace
 
         // 随机取出广告
         vector<shared_ptr<Advertise>> result;
-        generateRandomId(g_typeMap[type], num, result, type);
-        for (auto &ad : result)
+        auto res = generateRandomId(g_typeMap[type], num, result, type);
+        for (auto &ad : res)
         {
             // size_t randVal = rand() % g_typeMap[type].size();
             // auto randId = generateRandomId(vec, uniqueSet);
@@ -364,13 +368,13 @@ namespace ad_namespace
         }
 
         // auto randId = generateRandomId(vec, uniqueSet);
-        if (result.size() < num)
-        {
-            LOG(ERROR) << "not enough ad object!!!";
-            resp.set_err(errorEnum::NOT_ENOUGH_AD);
-            resp.set_msg("广告数量不足");
-            return 0;
-        }
+        // if (result.size() < num)
+        // {
+        //     LOG(ERROR) << "not enough ad object!!!";
+        //     resp.set_err(errorEnum::NOT_ENOUGH_AD);
+        //     resp.set_msg("广告数量不足");
+        //     return 0;
+        // }
         resp.set_err(errorEnum::SUCCESS);
         resp.set_msg("获取广告成功");
 
@@ -378,15 +382,16 @@ namespace ad_namespace
     }
 
     // 获取广告时非重复
-    void Ad::generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result, uint32_t type)
+    vector<shared_ptr<Advertise>> Ad::generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result, uint32_t type)
     {
-        priority_queue<shared_ptr<Advertise>> q;
-
+        LOG(ERROR) << "src.size " << src.size();
+        vector<shared_ptr<Advertise>> res;
         size_t len = src.size();
         if (rand_count >= len)
         {
             result = src;
-            return;
+            res = src;
+            return res;
         }
 
         /**
@@ -452,6 +457,7 @@ namespace ad_namespace
         }
         // 随机
         std::set<uint32_t> s;
+        std::map<uint32_t, bool> m;
         int randVal = (rand() % total) + 1;
         // 取rand_count个
         for (size_t i = 0; i < rand_count; i++)
@@ -461,14 +467,17 @@ namespace ad_namespace
             for (auto &ptr : src)
             {
                 // 如果没有取过
-                if (!s.count(ptr->id))
+                // if (!s.count(ptr->id))
+                if (m.find(ptr->id) == m.end())
                 {
                     tmpVal += g_weightMap[type][ptr->id];
                     if (tmpVal >= randVal)
                     {
                         result.push_back(ptr);
-                        g_weightMap[type][ptr->id] -= 128;
+                        res.push_back(ptr);
+                        g_weightMap[type][ptr->id] -= 256;
                         s.insert(ptr->id);
+                        m[ptr->id] = true;
 
                         if (g_weightMap[type][ptr->id] <= 0)
                         {
@@ -478,14 +487,21 @@ namespace ad_namespace
                         break;
                     }
                 }
+                // numMap[ptr->id]++;
             }
         }
+        LOG(ERROR) << "result.size()" << result.size();
         // 处理没随机到的
         for (auto &iter : g_weightMap[type])
         {
-            // cout << "id: " << iter.first << "  weight: " << iter.second << endl;
-            if (!s.count(iter.first))
+            // if (numMap[iter.first] == 3)
+            // {
+            // }
+            cout << "id: " << iter.first << "  weight: " << iter.second << endl;
+            // if (!s.count(iter.first))
+            if (m.find(iter.first) == m.end())
             {
+                // numMap[ptr->id]++;
                 if ((iter.second + 256) >= RAND_MAX / 2)
                 {
                     iter.second = RAND_MAX / 2;
@@ -503,8 +519,9 @@ namespace ad_namespace
         // {
         //     result.push_back(src[i]);
         // }
+        // res = result;
 
-        return;
+        return res;
     }
 
     //获得用户

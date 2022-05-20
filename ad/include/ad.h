@@ -45,9 +45,9 @@ namespace ad_namespace
         bool initUser(string uuid); // 将用户数据加载到内存
         uint32_t generateAdId();    // 生成广告id
         // void init();
-        void generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result, uint32_t type); //不重复随机生成
-        bool checkType(uint32_t type);                                                                                                      // 验证type是否合法
-        bool initCount(string uuid);                                                                                                        // 初始化统计
+        vector<shared_ptr<Advertise>> generateRandomId(vector<shared_ptr<Advertise>> &src, size_t rand_count, vector<shared_ptr<Advertise>> &result, uint32_t type); //不重复随机生成
+        bool checkType(uint32_t type);                                                                                                                               // 验证type是否合法
+        bool initCount(string uuid);                                                                                                                                 // 初始化统计
         double getCostByADType(uint32_t type);
     };
 }
